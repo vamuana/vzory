@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="sk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Programovanie vzorov – Učiteľ</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar__stripe" aria-hidden="true"></div>
+
+    <div class="brand">
+        <div class="brand__logo" aria-hidden="true">
+            <svg class="brand__mark" viewBox="0 0 64 64" fill="none">
+                <!-- background blob -->
+                <path d="M12 24c0-10 8-18 18-18h4c10 0 18 8 18 18v16c0 10-8 18-18 18h-4c-10 0-18-8-18-18V24z"
+                      fill="url(#g1)"/>
+                <!-- pattern tiles -->
+                <rect x="18" y="22" width="10" height="10" rx="3" fill="rgba(255,255,255,.92)"/>
+                <rect x="30" y="22" width="10" height="10" rx="3" fill="rgba(255,255,255,.70)"/>
+                <rect x="42" y="22" width="10" height="10" rx="3" fill="rgba(255,255,255,.92)"/>
+                <rect x="18" y="34" width="10" height="10" rx="3" fill="rgba(255,255,255,.70)"/>
+                <rect x="30" y="34" width="10" height="10" rx="3" fill="rgba(255,255,255,.92)"/>
+                <rect x="42" y="34" width="10" height="10" rx="3" fill="rgba(255,255,255,.70)"/>
+                <defs>
+                    <linearGradient id="g1" x1="12" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#00B9C8"/>
+                        <stop offset="0.55" stop-color="#F6A800"/>
+                        <stop offset="1" stop-color="#C45A0A"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+
+        <div class="brand__meta">
+            <div class="brand__title">Programovanie vzorov</div>
+            <div class="brand__subtitle">Učiteľské prostredie</div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <input id="fileLoad" class="sr-only" type="file" accept="application/json" />
+        <button id="btnLoad" class="btn btn--ghost" type="button">Načítaj</button>
+        <button id="btnSave" class="btn btn--ghost" type="button">Ulož</button>
+        <button id="btnExport" class="btn btn--primary" type="button">Export</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="panel">
+        <div class="panel__header">
+            <h1 class="panel__title">Zadania</h1>
+            <div class="panel__hint">
+                Ťahaním uchopte úchyt a zmeňte poradie.
+            </div>
+        </div>
+
+        <div id="tasksRoot" class="tasks"></div>
+
+        <div id="emptyState" class="empty" hidden>
+            <div class="empty__icon">＋</div>
+            <div class="empty__title">Zatiaľ nemáš žiadne zadania</div>
+            <div class="empty__text">Klikni na tlačidlo + a vytvor prvé zadanie.</div>
+        </div>
+    </section>
+</main>
+
+<button id="btnAdd" class="fab" type="button" aria-label="Pridať zadanie">+</button>
+
+<template id="taskRowTpl">
+    <article class="task" draggable="true">
+        <div class="task__drag" title="Presuň zadanie">⋮⋮</div>
+
+        <div class="task__head">
+            <div class="task__name"></div>
+        </div>
+
+        <div class="task__actions">
+            <span class="chip chip--teal task__pattern"></span>
+
+            <div class="task__btns">
+                <button class="btn btn--small btn--ghost task__edit" type="button">Uprav</button>
+                <button class="btn btn--small btn--danger task__delete" type="button">Zruš</button>
+            </div>
+        </div>
+
+        <div class="task__preview" aria-hidden="true">
+            <div class="preview__placeholder">Ukážka sa zobrazí po uložení (Hotovo).</div>
+        </div>
+    </article>
+</template>
+
+<!-- ===================== -->
+<!-- Editor overlay (view) -->
+<!-- ===================== -->
+<section id="editorOverlay" class="overlay" hidden>
+    <div class="overlay__backdrop"></div>
+
+    <div class="overlay__panel" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+        <header class="editor__top">
+            <div class="editor__titles">
+                <div id="editorTitle" class="editor__title">Nové zadanie</div>
+                <div class="editor__subtitle">Nastav názov, typ vzoru a obrázky (A/B/C).</div>
+            </div>
+
+            <button id="btnEditorClose" class="iconbtn" type="button" aria-label="Zavrieť">
+                ✕
+            </button>
+        </header>
+
+        <div class="editor__body">
+            <div class="grid">
+                <!-- Left: basic settings -->
+                <div class="card">
+                    <div class="card__title">Základné nastavenia</div>
+
+                    <label class="field">
+                        <span class="field__label">Meno zadania</span>
+                        <input id="inpTaskName" class="input" type="text" placeholder="napr. Kruhy" />
+                    </label>
+
+                    <div class="field">
+                        <span class="field__label">Typ vzoru</span>
+                        <div class="radioGrid" id="patternRadioRoot">
+                            <!-- built from JS -->
+                        </div>
+                    </div>
+
+                    <div class="field field--row">
+                        <label class="check">
+                            <input id="chkBeforeAfter" type="checkbox" />
+                            <span>Pred a za vzorom</span>
+                        </label>
+
+                        <div class="seg" id="segBeforeAfterSymbol" aria-label="Symbol pred/za">
+                            <button class="seg__btn" data-val="A" type="button">A</button>
+                            <button class="seg__btn" data-val="B" type="button">B</button>
+                            <button class="seg__btn" data-val="C" type="button">C</button>
+                        </div>
+                    </div>
+
+                    <div class="field field--row">
+                        <label class="field compact">
+                            <span class="field__label">Počet opakovaní</span>
+                            <input id="inpRepeat" class="input input--num" type="number" min="1" value="4" />
+                        </label>
+
+                        <label class="field compact">
+                            <span class="field__label">Počet vynechaných</span>
+                            <input id="inpMissing" class="input input--num" type="number" min="0" value="0" />
+                        </label>
+
+                        <label class="field compact">
+                            <span class="field__label">X vzdialenosť</span>
+                            <input id="inpXdist" class="input input--num" type="number" min="1" value="25" />
+                        </label>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btnRandom" class="btn btn--ghost" type="button">Náhodné nastavenia</button>
+                        <button id="btnDone" class="btn btn--primary" type="button">Hotovo</button>
+                    </div>
+                </div>
+
+                <!-- Right: preview placeholder + image pickers (stub for now) -->
+                <div class="card">
+                    <div class="card__title">Ukážka</div>
+
+                    <div class="previewBox">
+                        <div class="previewBox__hint">
+                            Tu bude canvas ukážka vzoru (ďalší krok).
+                        </div>
+                    </div>
+
+                    <div class="imgPickers">
+                        <div class="imgRow">
+                            <span class="imgTag chip chip--orange">A</span>
+                            <button class="btn btn--ghost btn--small" type="button" disabled>Vyber obrázok A</button>
+                            <span class="imgFile muted">—</span>
+                        </div>
+                        <div class="imgRow">
+                            <span class="imgTag chip chip--yellow">B</span>
+                            <button class="btn btn--ghost btn--small" type="button" disabled>Vyber obrázok B</button>
+                            <span class="imgFile muted">—</span>
+                        </div>
+                        <div class="imgRow">
+                            <span class="imgTag chip chip--sky">C</span>
+                            <button class="btn btn--ghost btn--small" type="button" disabled>Vyber obrázok C</button>
+                            <span class="imgFile muted">—</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
