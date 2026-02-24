@@ -13,10 +13,8 @@
     <div class="brand">
         <div class="brand__logo" aria-hidden="true">
             <svg class="brand__mark" viewBox="0 0 64 64" fill="none">
-                <!-- background blob -->
                 <path d="M12 24c0-10 8-18 18-18h4c10 0 18 8 18 18v16c0 10-8 18-18 18h-4c-10 0-18-8-18-18V24z"
                       fill="url(#g1)"/>
-                <!-- pattern tiles -->
                 <rect x="18" y="22" width="10" height="10" rx="3" fill="rgba(255,255,255,.92)"/>
                 <rect x="30" y="22" width="10" height="10" rx="3" fill="rgba(255,255,255,.70)"/>
                 <rect x="42" y="22" width="10" height="10" rx="3" fill="rgba(255,255,255,.92)"/>
@@ -51,9 +49,7 @@
     <section class="panel">
         <div class="panel__header">
             <h1 class="panel__title">Zadania</h1>
-            <div class="panel__hint">
-                Ťahaním uchopte úchyt a zmeňte poradie.
-            </div>
+            <div class="panel__hint">Ťahaním uchopte úchyt a zmeňte poradie.</div>
         </div>
 
         <div id="tasksRoot" class="tasks"></div>
@@ -104,14 +100,17 @@
                 <div class="editor__subtitle">Nastav názov, typ vzoru a obrázky (A/B/C).</div>
             </div>
 
-            <button id="btnEditorClose" class="iconbtn" type="button" aria-label="Zavrieť">
-                ✕
-            </button>
+            <button id="btnEditorClose" class="iconbtn" type="button" aria-label="Zavrieť">✕</button>
         </header>
 
         <div class="editor__body">
-            <div class="grid">
-                <!-- Left: basic settings -->
+            <!--
+              NEW LAYOUT:
+              - Top row = 2 columns (left settings, right images + numbers)
+              - Bottom row = full-width preview
+            -->
+            <div class="grid grid--editor">
+                <!-- LEFT: core settings -->
                 <div class="card">
                     <div class="card__title">Základné nastavenia</div>
 
@@ -140,7 +139,18 @@
                         </div>
                     </div>
 
-                    <div class="field field--row">
+                    <div class="actions">
+                        <button id="btnRandom" class="btn btn--ghost" type="button">Náhodné nastavenia</button>
+                        <button id="btnDone" class="btn btn--primary" type="button">Hotovo</button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: numbers + image pickers -->
+                <div class="card">
+                    <div class="card__title">Obrázky a nastavenia</div>
+
+                    <!-- moved numeric fields here (same IDs => JS stays the same) -->
+                    <div class="field field--row" style="margin-top: 6px;">
                         <label class="field compact">
                             <span class="field__label">Počet opakovaní</span>
                             <input id="inpRepeat" class="input input--num" type="number" min="1" value="4" />
@@ -155,22 +165,6 @@
                             <span class="field__label">X vzdialenosť</span>
                             <input id="inpXdist" class="input input--num" type="number" min="1" value="25" />
                         </label>
-                    </div>
-
-                    <div class="actions">
-                        <button id="btnRandom" class="btn btn--ghost" type="button">Náhodné nastavenia</button>
-                        <button id="btnDone" class="btn btn--primary" type="button">Hotovo</button>
-                    </div>
-                </div>
-
-                <!-- Right: preview placeholder + image pickers (stub for now) -->
-                <div class="card">
-                    <div class="card__title">Ukážka</div>
-
-                    <div class="previewBox">
-                        <div class="previewBox__hint">
-                            Tu bude canvas ukážka vzoru (ďalší krok).
-                        </div>
                     </div>
 
                     <div class="imgPickers">
@@ -190,12 +184,24 @@
                             <span class="imgFile muted">—</span>
                         </div>
                     </div>
+                </div>
 
+                <!-- FULL-WIDTH PREVIEW (bottom row) -->
+                <div class="card card--previewWide">
+                    <div class="card__title">Ukážka</div>
+
+                    <!-- IMPORTANT: explicit id so JS mounts canvas here -->
+                    <div id="editorPreviewBox" class="previewBox previewBox--wide">
+                        <div class="previewBox__hint">
+                            Tu bude canvas ukážka vzoru (ďalší krok).
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
 <script src="app.js"></script>
 </body>

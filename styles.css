@@ -940,5 +940,67 @@ body::after{
     align-items:center;
 }
 
+.preview-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 8px 0;
+}
+
+.preview-tile {
+    flex: 0 0 auto;
+    width: 140px;     /* fixed frame */
+    height: 90px;     /* fixed frame */
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    display: grid;
+    place-items: center;
+}
+
+.preview-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;   /* key */
+}
 
 
+.task__preview{
+    grid-area: preview;
+    height: 110px;
+    border-radius: 14px;
+    overflow-x: auto;         /* allow horizontal scroll */
+    overflow-y: hidden;
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(19,32,51,.10);
+    display: flex;            /* so image can size itself */
+    align-items: center;
+    padding: 8px 10px;        /* small breathing room */
+    gap: 10px;
+}
+
+/* IMPORTANT: make image fill the height, width auto */
+.task__preview img{
+    height: 100%;
+    width: auto;
+    flex: 0 0 auto;
+    object-fit: contain;      /* safe, but not the main sizing mechanism now */
+    display: block;
+    transform: none;          /* remove the scale hack */
+}
+.grid--editor{
+    display:grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 14px;
+    align-items: start;
+}
+
+/* make preview row span both columns */
+.card--previewWide{
+    grid-column: 1 / -1;
+}
+
+/* wide preview should feel like a strip */
+.previewBox--wide{
+    height: 220px; /* tune as you like */
+}
