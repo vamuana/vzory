@@ -9,6 +9,7 @@
    - Canvas ukážka + uloženie náhľadu ako PNG (DataURL)
    - Uloženie/načítanie projektu do JSON
    - Export ZIP (žiacka verzia: student.html + student_app.js + student_styles.css + tasks/ súbory)
+   - NOVÉ: vlastný vzor z reťazca A/B/C
 ------------------------------------------------------- */
 
 (function () {
@@ -22,14 +23,15 @@
     const state = {
         project: {
             version: 2,
-            // Ak nechceš defaultný príklad, daj tasks: []
             tasks: [
                 {
                     id: crypto.randomUUID(),
-                    seed: crypto.randomUUID(), // seed pre stabilné vynechané pozície
+                    seed: crypto.randomUUID(),
                     name: "Kruhy",
                     patternType: "AB",
-                    patternMode: "constant", // "constant" | "growing"
+                    patternMode: "constant",
+                    isCustomPattern: false,
+                    customPattern: "",
                     beforeAfterEnabled: false,
                     beforeAfterSymbol: "A",
                     repeatCount: 4,
@@ -41,8 +43,8 @@
                         B: { fileName: "kruhy1.png", dataUrl: null, hash: null },
                         C: { fileName: "kruhy2.png", dataUrl: null, hash: null },
                     },
-                    previewPngDataUrl: null, // náhľad z canvasu
-                    pythonText: null,         // uložený python template
+                    previewPngDataUrl: null,
+                    pythonText: null,
                 },
             ],
         },
@@ -52,7 +54,6 @@
        2) DOM ELEMENTY
        ======================================================= */
 
-    /** Rýchly prístup k prvkom v DOM (teacher stránka). */
     const els = {
         // Index
         tasksRoot: document.getElementById("tasksRoot"),
@@ -69,6 +70,8 @@
         btnEditorClose: document.getElementById("btnEditorClose"),
         inpTaskName: document.getElementById("inpTaskName"),
         patternRadioRoot: document.getElementById("patternRadioRoot"),
+        inpCustomPattern: document.getElementById("inpCustomPattern"),
+        customPatternField: document.getElementById("customPatternField"),
         chkBeforeAfter: document.getElementById("chkBeforeAfter"),
         segBeforeAfterSymbol: document.getElementById("segBeforeAfterSymbol"),
         inpRepeat: document.getElementById("inpRepeat"),
@@ -78,7 +81,6 @@
         btnDone: document.getElementById("btnDone"),
     };
 
-    /** Správa inputov pre obrázky A/B/C (vytvárame hidden <input type=file> dynamicky). */
     const picker = {
         rows: [],
         inputs: { A: null, B: null, C: null },
@@ -86,7 +88,6 @@
         fileLabels: { A: null, B: null, C: null },
     };
 
-    /** Canvas pre živú ukážku vzoru v editore. */
     let previewCanvas = null;
     let previewCtx = null;
 
@@ -94,7 +95,6 @@
        3) DEFINÍCIA VZOROV
        ======================================================= */
 
-    /** Konštantné vzory (opakujem celý reťazec). */
     const PATTERNS_CONSTANT = [
         { id: "AB", label: "AB" },
         { id: "ABA", label: "ABA" },
@@ -103,14 +103,12 @@
         { id: "ABABA", label: "ABABA" },
     ];
 
-    /** Rastúce vzory (postupne sa reťazec predlžuje). */
     const PATTERNS_GROWING = [
         { id: "ABAAB", label: "ABAAB…" },
         { id: "ABABB", label: "ABABB…" },
         { id: "ABAABB", label: "ABAABB…" },
     ];
 
-    /** Nájde definíciu vzoru podľa id a módu. */
     function getPatternById(id, mode) {
         const list = mode === "growing" ? PATTERNS_GROWING : PATTERNS_CONSTANT;
         return list.find((p) => p.id === id) || null;
@@ -120,21 +118,21 @@
        4) MODEL EDITORA (create/edit)
        ======================================================= */
 
-    /** Editor drží dočasné dáta (draft), ktoré sa po Hotovo uložia do projektu. */
     const editor = {
-        mode: "create",    // "create" | "edit"
+        mode: "create",
         editingId: null,
-        data: null,        // draft zadania
+        data: null,
     };
 
-    /** Vytvorí prázdny draft zadania (predvolené hodnoty). */
     function getDefaultTaskDraft() {
         return {
             id: null,
-            seed: crypto.randomUUID(),  // seed pre stabilné vynechané pozície
+            seed: crypto.randomUUID(),
             name: "",
             patternType: "AB",
             patternMode: "constant",
+            isCustomPattern: false,
+            customPattern: "",
             beforeAfterEnabled: false,
             beforeAfterSymbol: "A",
             repeatCount: 4,
@@ -153,14 +151,12 @@
        5) POMOCNÉ FUNKCIE (UTILS)
        ======================================================= */
 
-    /** Zabezpečí integer v rozsahu (ochrana pred NaN a extrémami). */
     function clampInt(v, min, max, fallback) {
         const n = Number.parseInt(v, 10);
         if (Number.isNaN(n)) return fallback;
         return Math.min(max, Math.max(min, n));
     }
 
-    /** Z názvu zadania spraví bezpečný “base” pre názvy súborov (bez diakritiky). */
     function sanitizeBaseName(name) {
         const raw = (name || "").trim();
         if (!raw) return "zadanie";
@@ -169,7 +165,6 @@
         return safe || "zadanie";
     }
 
-    /** Podľa názvu zadania nastaví fileName pre A/B/C (napr. kruhy0.png, kruhy1.png, kruhy2.png). */
     function ensureImageFileNamesFromTaskName(draft) {
         const base = sanitizeBaseName(draft.name);
         draft.images.A.fileName = `${base}0.png`;
@@ -177,7 +172,6 @@
         draft.images.C.fileName = `${base}2.png`;
     }
 
-    /** Jednoduchý debounce – použité pri renderovaní canvasu (aby sa nerenderovalo 50×/sek). */
     function debounce(fn, ms = 120) {
         let t = null;
         return (...args) => {
@@ -186,18 +180,41 @@
         };
     }
 
-    /** Zobrazí/skryje editor overlay (a zablokuje scroll na pozadí). */
     function showOverlay(on) {
         if (!els.editorOverlay) return;
         els.editorOverlay.hidden = !on;
         document.body.style.overflow = on ? "hidden" : "";
     }
 
+    function normalizeCustomPattern(value) {
+        return String(value || "")
+            .toUpperCase()
+            .replace(/\s+/g, "")
+            .replace(/[^ABC]/g, "");
+    }
+
+    function isValidCustomPattern(value) {
+        return /^[ABC]+$/.test(String(value || ""));
+    }
+
+    function getEffectivePatternString(draft) {
+        if (draft.isCustomPattern) {
+            return normalizeCustomPattern(draft.customPattern) || "AB";
+        }
+        return (draft.patternType || "AB").trim();
+    }
+
+    function updateCustomPatternUI() {
+        if (!els.customPatternField || !els.patternRadioRoot) return;
+        const checked = els.patternRadioRoot.querySelector('input[name="patternType"]:checked');
+        const isCustom = checked?.dataset?.custom === "true";
+        els.customPatternField.style.display = isCustom ? "block" : "none";
+    }
+
     /* =======================================================
        6) STABILNÉ “VYNECHANÉ” POZÍCIE (seeded)
        ======================================================= */
 
-    /** Jednoduchý hash string -> uint32 (na seedovanie PRNG). */
     function hashStringToU32(str) {
         let h = 2166136261;
         for (let i = 0; i < str.length; i++) {
@@ -207,7 +224,6 @@
         return h >>> 0;
     }
 
-    /** Mulberry32 PRNG – deterministické “náhodné” čísla zo seedu. */
     function mulberry32(seed) {
         let t = seed >>> 0;
         return function () {
@@ -218,7 +234,6 @@
         };
     }
 
-    /** Vráti k unikátnych indexov (0..n-1) deterministicky zo seedu. */
     function makeDeterministicUniqueIndices(n, k, seedStr) {
         k = Math.max(0, Math.min(k, n));
         const idxs = Array.from({ length: n }, (_, i) => i);
@@ -230,11 +245,6 @@
         return idxs.slice(0, k).sort((a, b) => a - b);
     }
 
-    /**
-     * Udrží stabilné missingIndices:
-     * - ak sa nemení dĺžka a počet “missing”, ponechá existujúce
-     * - inak ich znovu deterministicky vypočíta z (seed + parametre vzoru)
-     */
     function ensureStableMissingIndices(draft, seqLen) {
         const want = Math.max(0, Math.min(Number(draft.missingCount || 0), seqLen));
 
@@ -247,7 +257,11 @@
             return;
         }
 
-        const key = `${draft.seed}::${draft.patternMode}::${draft.patternType}::${draft.repeatCount}::${draft.beforeAfterEnabled ? draft.beforeAfterSymbol : "-"}`;
+        const patternKey = draft.isCustomPattern
+            ? normalizeCustomPattern(draft.customPattern)
+            : draft.patternType;
+
+        const key = `${draft.seed}::${draft.patternMode}::${patternKey}::${draft.repeatCount}::${draft.beforeAfterEnabled ? draft.beforeAfterSymbol : "-"}`;
         draft.missingIndices = makeDeterministicUniqueIndices(seqLen, want, key);
     }
 
@@ -255,7 +269,6 @@
        7) RENDER ZOZNAMU ZADANÍ (INDEX)
        ======================================================= */
 
-    /** Vykreslí zoznam zadaní (karty) podľa state.project.tasks. */
     function renderIndex() {
         const tasks = state.project.tasks;
 
@@ -266,16 +279,15 @@
             const node = els.tpl.content.firstElementChild.cloneNode(true);
             node.dataset.id = t.id;
 
-            // Názov
             node.querySelector(".task__name").textContent = t.name || "Bez názvu";
 
-            // Chip s info o vzore
             const modeLabel = t.patternMode === "growing" ? "rastúci" : "konštantný";
             const p = getPatternById(t.patternType, t.patternMode);
-            const label = p?.label ?? t.patternType ?? "-";
+            const label = t.isCustomPattern
+                ? `Vlastný: ${t.customPattern || "-"}`
+                : (p?.label ?? t.patternType ?? "-");
             node.querySelector(".task__pattern").textContent = `Vzor: ${label} (${modeLabel})`;
 
-            // Náhľad (PNG DataURL)
             const previewEl = node.querySelector(".task__preview");
             previewEl.innerHTML = "";
             if (t.previewPngDataUrl) {
@@ -290,11 +302,9 @@
                 previewEl.appendChild(hint);
             }
 
-            // Akcie
             node.querySelector(".task__edit").addEventListener("click", () => onEditTask(t.id));
             node.querySelector(".task__delete").addEventListener("click", () => onDeleteTask(t.id));
 
-            // Drag&drop
             wireDragAndDrop(node);
 
             els.tasksRoot.appendChild(node);
@@ -305,17 +315,14 @@
        8) AKCIE NA INDEXE (add/edit/delete)
        ======================================================= */
 
-    /** Klik na + (pridať zadanie). */
     function onAddTask() {
         openEditorCreate();
     }
 
-    /** Klik na “Uprav”. */
     function onEditTask(taskId) {
         openEditorEdit(taskId);
     }
 
-    /** Klik na “Zruš”. */
     function onDeleteTask(taskId) {
         const idx = state.project.tasks.findIndex((t) => t.id === taskId);
         if (idx === -1) return;
@@ -332,7 +339,6 @@
        9) ULOŽENIE/NAČÍTANIE PROJEKTU (JSON)
        ======================================================= */
 
-    /** Stiahne objekt ako JSON súbor. */
     function downloadJson(filename, obj) {
         const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -343,18 +349,15 @@
         URL.revokeObjectURL(url);
     }
 
-    /** Ulož projekt do vzory_project.json. */
     function onSaveProject() {
         downloadJson("vzory_project.json", state.project);
     }
 
-    /** Klik na “Načítaj” – otvorí file picker. */
     function onLoadProjectClick() {
         els.fileLoad.value = "";
         els.fileLoad.click();
     }
 
-    /** Načíta JSON projekt zo súboru a namapuje do state.project. */
     async function onLoadProjectFile(file) {
         const text = await file.text();
         const parsed = JSON.parse(text);
@@ -372,6 +375,8 @@
                 name: t.name || "",
                 patternType: t.patternType || "AB",
                 patternMode: t.patternMode === "growing" ? "growing" : "constant",
+                isCustomPattern: !!t.isCustomPattern,
+                customPattern: t.customPattern || "",
                 beforeAfterEnabled: !!t.beforeAfterEnabled,
                 beforeAfterSymbol: t.beforeAfterSymbol || "A",
                 repeatCount: Number(t.repeatCount ?? 4),
@@ -407,7 +412,6 @@
        10) EXPORT ZIP (ŽIAK)
        ======================================================= */
 
-    /** Konverzia dataURL -> Uint8Array (pre uloženie do ZIP). */
     function dataUrlToUint8Array(dataUrl) {
         const parts = String(dataUrl).split(",");
         const meta = parts[0] || "";
@@ -422,7 +426,6 @@
         return bytes;
     }
 
-    /** Exportuje ZIP: student.html + student_app.js + student_styles.css + tasks/ (png + py). */
     async function onExport() {
         if (typeof window.JSZip === "undefined") {
             alert(
@@ -440,13 +443,14 @@
 
         const zip = new JSZip();
 
-        // --- priprava payloadu pre student.html ---
         const tasksPayload = tasks.map((t, i) => ({
             id: t.id,
             name: t.name || `Zadanie ${i + 1}`,
             seed: t.seed,
             patternType: t.patternType,
             patternMode: t.patternMode,
+            isCustomPattern: !!t.isCustomPattern,
+            customPattern: t.customPattern || "",
             beforeAfterEnabled: !!t.beforeAfterEnabled,
             beforeAfterSymbol: t.beforeAfterSymbol || "A",
             repeatCount: Number(t.repeatCount ?? 4),
@@ -471,19 +475,16 @@
         zip.file("student_app.js", STUDENT_APP_JS);
         zip.file("student_styles.css", STUDENT_STYLES_CSS);
 
-        // --- tasks/ (python + png) ---
         const tasksFolder = zip.folder("tasks");
 
         for (const t of tasks) {
             const base = sanitizeBaseName(t.name);
             const safeBase = base || `zadanie_${t.id.slice(0, 8)}`;
 
-            // Python
             const pyName = `${safeBase}.py`;
             const pyText = t.pythonText || generatePythonTemplate(t);
             tasksFolder.file(pyName, pyText);
 
-            // Obrázky
             for (const slot of ["A", "B", "C"]) {
                 const img = t.images?.[slot];
                 if (!img?.dataUrl || !img?.fileName) continue;
@@ -507,7 +508,6 @@
 
     let dragSrcId = null;
 
-    /** Napojí drag&drop udalosti na jednu kartu zadania. */
     function wireDragAndDrop(taskEl) {
         taskEl.addEventListener("dragstart", (e) => {
             dragSrcId = taskEl.dataset.id;
@@ -545,7 +545,6 @@
        12) EDITOR – OPEN/MOUNT/READ/SAVE
        ======================================================= */
 
-    /** Otvorí editor v režime “create”. */
     function openEditorCreate() {
         editor.mode = "create";
         editor.editingId = null;
@@ -554,7 +553,6 @@
         showOverlay(true);
     }
 
-    /** Otvorí editor v režime “edit” (naplní draft z existujúceho zadania). */
     function openEditorEdit(taskId) {
         const t = state.project.tasks.find((x) => x.id === taskId);
         if (!t) return;
@@ -568,6 +566,8 @@
             name: t.name || "",
             patternType: t.patternType || "AB",
             patternMode: t.patternMode === "growing" ? "growing" : "constant",
+            isCustomPattern: !!t.isCustomPattern,
+            customPattern: t.customPattern || "",
             beforeAfterEnabled: !!t.beforeAfterEnabled,
             beforeAfterSymbol: t.beforeAfterSymbol || "A",
             repeatCount: Number(t.repeatCount ?? 4),
@@ -585,7 +585,6 @@
         showOverlay(true);
     }
 
-    /** Namontuje editor UI: vyplní inputy, postaví radio UI, pripraví pickery, canvas, preview. */
     function mountEditor() {
         const titleEl = document.getElementById("editorTitle");
         if (titleEl) titleEl.textContent = editor.mode === "edit" ? "Upraviť zadanie" : "Nové zadanie";
@@ -597,13 +596,14 @@
         els.inpRepeat.value = editor.data.repeatCount;
         els.inpMissing.value = editor.data.missingCount;
         els.inpXdist.value = editor.data.xDist;
+        if (els.inpCustomPattern) {
+            els.inpCustomPattern.value = editor.data.customPattern || "";
+        }
 
-        // Reset radio root a postav znova
         els.patternRadioRoot.innerHTML = "";
         els.patternRadioRoot.style.display = "block";
 
-        // Fallback ak by bol neplatný typ
-        if (!getPatternById(editor.data.patternType, editor.data.patternMode)) {
+        if (!editor.data.isCustomPattern && !getPatternById(editor.data.patternType, editor.data.patternMode)) {
             editor.data.patternMode = "constant";
             editor.data.patternType = "AB";
         }
@@ -612,6 +612,7 @@
 
         setSegValue(editor.data.beforeAfterSymbol);
         updateBeforeAfterUI();
+        updateCustomPatternUI();
 
         setupImagePickersIfNeeded();
         refreshImagePickerLabels();
@@ -620,7 +621,6 @@
         renderEditorPreview();
     }
 
-    /** Vytvorí skupiny radio buttonov (Konštantné / Rastúce). */
     function buildPatternGroupsUI() {
         const container = els.patternRadioRoot;
 
@@ -637,7 +637,10 @@
             list.forEach((p) => {
                 const wrap = document.createElement("label");
                 wrap.className = "radio";
-                const checked = p.id === editor.data.patternType && editor.data.patternMode === mode;
+                const checked =
+                    !editor.data.isCustomPattern &&
+                    p.id === editor.data.patternType &&
+                    editor.data.patternMode === mode;
 
                 wrap.innerHTML = `
           <input
@@ -645,6 +648,7 @@
             name="patternType"
             value="${p.id}"
             data-mode="${mode}"
+            data-custom="false"
             ${checked ? "checked" : ""}
           />
           <span class="radio__box">${p.label}</span>
@@ -658,9 +662,39 @@
 
         buildGroup("Konštantné", PATTERNS_CONSTANT, "constant");
         buildGroup("Rastúce", PATTERNS_GROWING, "growing");
+
+        const h = document.createElement("div");
+        h.className = "field__label";
+        h.textContent = "Vlastný";
+        h.style.marginTop = "6px";
+
+        const grid = document.createElement("div");
+        grid.className = "radioGrid";
+        grid.style.marginTop = "6px";
+
+        const wrap = document.createElement("label");
+        wrap.className = "radio";
+        const checked = !!editor.data.isCustomPattern;
+
+        wrap.innerHTML = `
+      <input
+        type="radio"
+        name="patternType"
+        value="CUSTOM"
+        data-mode="constant"
+        data-custom="true"
+        ${checked ? "checked" : ""}
+      />
+      <span class="radio__box">Vlastný vzor</span>
+    `;
+        grid.appendChild(wrap);
+
+        container.appendChild(h);
+        container.appendChild(grid);
+
+        updateCustomPatternUI();
     }
 
-    /** Načíta hodnoty z inputov do editor.data (draft). */
     function readEditorIntoDraft() {
         editor.data.name = els.inpTaskName.value.trim();
         ensureImageFileNamesFromTaskName(editor.data);
@@ -668,12 +702,23 @@
         editor.data.beforeAfterEnabled = els.chkBeforeAfter.checked;
 
         const checked = els.patternRadioRoot.querySelector('input[name="patternType"]:checked');
-        if (checked) {
+        const isCustom = checked?.dataset?.custom === "true";
+
+        editor.data.isCustomPattern = isCustom;
+
+        if (isCustom) {
+            editor.data.patternMode = "constant";
+            editor.data.patternType = "CUSTOM";
+            editor.data.customPattern = normalizeCustomPattern(els.inpCustomPattern?.value || "");
+        } else if (checked) {
             editor.data.patternType = checked.value || "AB";
             editor.data.patternMode = checked.dataset.mode === "growing" ? "growing" : "constant";
+            editor.data.customPattern = normalizeCustomPattern(els.inpCustomPattern?.value || "");
         } else {
+            editor.data.isCustomPattern = false;
             editor.data.patternType = "AB";
             editor.data.patternMode = "constant";
+            editor.data.customPattern = normalizeCustomPattern(els.inpCustomPattern?.value || "");
         }
 
         editor.data.repeatCount = clampInt(els.inpRepeat.value, 1, 999, 4);
@@ -683,18 +728,22 @@
         const activeSeg = els.segBeforeAfterSymbol.querySelector(".seg__btn.is-active");
         editor.data.beforeAfterSymbol = activeSeg?.dataset?.val || "A";
 
-        // Stabilné vynechané indexy
         const seqLen = buildSymbolSequenceWithoutMissing(editor.data).length;
         ensureStableMissingIndices(editor.data, seqLen);
     }
 
-    /** Uloží zadanie (create/edit), vygeneruje pythonText + preview png, zavrie editor. */
     function saveEditor() {
         readEditorIntoDraft();
 
         if (!editor.data.name) {
             alert("Prosím zadaj meno zadania.");
             els.inpTaskName.focus();
+            return;
+        }
+
+        if (editor.data.isCustomPattern && !isValidCustomPattern(editor.data.customPattern)) {
+            alert("Vlastný vzor môže obsahovať iba písmená A, B, C a nesmie byť prázdny.");
+            els.inpCustomPattern.focus();
             return;
         }
 
@@ -708,6 +757,8 @@
                 name: editor.data.name,
                 patternType: editor.data.patternType,
                 patternMode: editor.data.patternMode,
+                isCustomPattern: !!editor.data.isCustomPattern,
+                customPattern: editor.data.customPattern || "",
                 beforeAfterEnabled: editor.data.beforeAfterEnabled,
                 beforeAfterSymbol: editor.data.beforeAfterSymbol,
                 repeatCount: editor.data.repeatCount,
@@ -731,6 +782,8 @@
                 name: editor.data.name,
                 patternType: editor.data.patternType,
                 patternMode: editor.data.patternMode,
+                isCustomPattern: !!editor.data.isCustomPattern,
+                customPattern: editor.data.customPattern || "",
                 beforeAfterEnabled: editor.data.beforeAfterEnabled,
                 beforeAfterSymbol: editor.data.beforeAfterSymbol,
                 repeatCount: editor.data.repeatCount,
@@ -755,26 +808,35 @@
        13) PRED/ZA – SEGMENT A UI
        ======================================================= */
 
-    /** Nastaví active stav v segmente A/B/C. */
     function setSegValue(val) {
         els.segBeforeAfterSymbol.querySelectorAll(".seg__btn").forEach((btn) => {
             btn.classList.toggle("is-active", btn.dataset.val === val);
         });
     }
 
-    /** Zapne/vypne segment (pred/za) podľa checkboxu. */
     function updateBeforeAfterUI() {
         const enabled = els.chkBeforeAfter.checked;
         els.segBeforeAfterSymbol.style.opacity = enabled ? "1" : ".45";
         els.segBeforeAfterSymbol.style.pointerEvents = enabled ? "auto" : "none";
     }
 
-    /** Náhodné nastavenia – vyberie random pattern + random pred/za + random čísla (ponechané podľa vašej aktuálnej implementácie). */
     function applyRandomSettings() {
-        editor.data.patternMode = Math.random() < 0.5 ? "constant" : "growing";
-        const list = editor.data.patternMode === "growing" ? PATTERNS_GROWING : PATTERNS_CONSTANT;
-        const rnd = list[Math.floor(Math.random() * list.length)];
-        editor.data.patternType = rnd?.id || "AB";
+        const useCustom = Math.random() < 0.35;
+
+        if (useCustom) {
+            const customPool = ["ABC", "AAB", "ACB", "ABCA", "CBA", "AACBB"];
+            editor.data.isCustomPattern = true;
+            editor.data.patternMode = "constant";
+            editor.data.patternType = "CUSTOM";
+            editor.data.customPattern = customPool[Math.floor(Math.random() * customPool.length)];
+        } else {
+            editor.data.isCustomPattern = false;
+            editor.data.customPattern = "";
+            editor.data.patternMode = Math.random() < 0.5 ? "constant" : "growing";
+            const list = editor.data.patternMode === "growing" ? PATTERNS_GROWING : PATTERNS_CONSTANT;
+            const rnd = list[Math.floor(Math.random() * list.length)];
+            editor.data.patternType = rnd?.id || "AB";
+        }
 
         editor.data.beforeAfterEnabled = Math.random() < 0.5;
         editor.data.beforeAfterSymbol = ["A", "B", "C"][Math.floor(Math.random() * 3)];
@@ -790,10 +852,9 @@
     }
 
     /* =======================================================
-       14) UPLOAD OBRÁZKOV A/B/C + HASH (A a B nesmú byť rovnaké)
+       14) UPLOAD OBRÁZKOV A/B/C + HASH
        ======================================================= */
 
-    /** Pripraví image pickery (len raz) – pridá hidden file input ku každému riadku. */
     function setupImagePickersIfNeeded() {
         if (picker.rows.length) return;
 
@@ -826,7 +887,6 @@
 
                 const { dataUrl, hash } = await readFileAsDataUrlAndHash(file);
 
-                // A a B nesmú byť rovnaké PNG (podľa hash)
                 if (slot === "A" && editor.data.images.B.hash && editor.data.images.B.hash === hash) {
                     alert("Obrázok A nemôže byť rovnaký ako obrázok B. Vyber iný PNG.");
                     inp.value = "";
@@ -867,7 +927,6 @@
         });
     }
 
-    /** Aktualizuje texty s názvami súborov pri A/B/C. */
     function refreshImagePickerLabels() {
         if (!picker.fileLabels.A) return;
 
@@ -883,7 +942,6 @@
         });
     }
 
-    /** Prečíta súbor ako DataURL. */
     function readFileAsDataUrl(file) {
         return new Promise((resolve, reject) => {
             const r = new FileReader();
@@ -893,7 +951,6 @@
         });
     }
 
-    /** Prečíta súbor ako DataURL a vypočíta SHA-256 hash (na kontrolu duplicity A/B). */
     async function readFileAsDataUrlAndHash(file) {
         const dataUrl = await readFileAsDataUrl(file);
         const buf = await file.arrayBuffer();
@@ -907,7 +964,6 @@
        15) CANVAS PREVIEW – VYKRESLENIE + PNG SNAPSHOT
        ======================================================= */
 
-    /** Synchronizuje CSS výšku canvasu podľa pomeru strán (aby sa nedeformoval). */
     function syncPreviewCanvasCssHeight() {
         if (!previewCanvas) return;
         const box = previewCanvas.parentElement;
@@ -920,7 +976,6 @@
         previewCanvas.style.height = `${cssH}px`;
     }
 
-    /** Vytvorí canvas v editore (len raz). */
     function setupPreviewCanvasIfNeeded() {
         if (previewCanvas) return;
 
@@ -940,7 +995,6 @@
         previewCtx = previewCanvas.getContext("2d");
     }
 
-    /** Uloží obsah canvasu ako orezaný PNG (DataURL) – použité na náhľad na indexe. */
     function snapshotPreviewAsCroppedDataUrl(pad = 16) {
         if (!previewCanvas || !previewCtx) return null;
 
@@ -983,13 +1037,12 @@
         return out.toDataURL("image/png");
     }
 
-    /** Vytvorí sekvenciu symbolov bez missing (na výpočet dĺžky + deterministiku). */
     function buildSymbolSequenceWithoutMissing(draft) {
-        const base = (draft.patternType || "AB").trim();
+        const base = getEffectivePatternString(draft);
         const repeat = Math.max(1, Number(draft.repeatCount || 1));
         let seq = [];
 
-        if (draft.patternMode === "growing") {
+        if (draft.patternMode === "growing" && !draft.isCustomPattern) {
             for (let i = 1; i <= repeat; i++) {
                 const part = base.slice(0, Math.min(base.length, i));
                 seq.push(...part.split(""));
@@ -1008,7 +1061,6 @@
         return seq.map((c) => (c === "A" || c === "B" || c === "C" ? c : null));
     }
 
-    /** Vytvorí sekvenciu symbolov s missing (null) podľa stabilných missingIndices. */
     function buildSymbolSequence(draft) {
         const seq = buildSymbolSequenceWithoutMissing(draft);
         ensureStableMissingIndices(draft, seq.length);
@@ -1016,7 +1068,6 @@
         return seq.map((v, i) => (holes.has(i) ? null : v));
     }
 
-    /** Zmeria layout: koľko prvkov sa zmestí do riadku, koľko riadkov treba, aká výška canvasu. */
     function measurePreviewLayout(draft, canvasW) {
         const seq = buildSymbolSequence(draft);
 
@@ -1035,7 +1086,6 @@
         return { seq, gap, rows, tile: baseTile, neededH, paddingX, paddingY, lineGap, perRow };
     }
 
-    /** Načíta obrázok (DataURL) do Image objektu. */
     function loadImage(src) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -1045,7 +1095,6 @@
         });
     }
 
-    /** Pomocná funkcia: zaoblený obdĺžnik (pre placeholder tile). */
     function roundRect(ctx, x, y, w, h, r) {
         const rr = Math.min(r, w / 2, h / 2);
         ctx.beginPath();
@@ -1057,7 +1106,6 @@
         ctx.closePath();
     }
 
-    /** Vykreslí jeden tile: buď reálny PNG, alebo placeholder s písmenom A/B/C. */
     async function drawTile(ctx, x, y, size, symbol, draft) {
         const slot = symbol;
         const dataUrl = draft.images?.[slot]?.dataUrl;
@@ -1087,17 +1135,14 @@
         ctx.restore();
     }
 
-    /** Debounced render ukážky na canvas. */
     const renderEditorPreview = debounce(async function () {
         if (!previewCanvas) return;
 
-        // vždy zosynchronizuj draft z DOM
         readEditorIntoDraft();
         refreshImagePickerLabels();
 
         const m = measurePreviewLayout(editor.data, previewCanvas.width);
 
-        // Dynamická výška canvasu podľa obsahu (limitovaná)
         const newH = Math.max(180, Math.min(420, m.neededH));
         if (previewCanvas.height !== newH) {
             previewCanvas.height = newH;
@@ -1131,7 +1176,6 @@
             if (seq[i] !== null) {
                 await drawTile(ctx, x, y, size, seq[i], editor.data);
             } else {
-                // vynechané miesto
                 ctx.save();
                 ctx.globalAlpha = 0.35;
                 ctx.setLineDash([6, 6]);
@@ -1147,21 +1191,14 @@
     }, 80);
 
     /* =======================================================
-       16) PYTHON TEMPLATE (s obrázkami v zozname)
+       16) PYTHON TEMPLATE
        ======================================================= */
 
-    /**
-     * Vygeneruje python šablónu:
-     * - načíta obrázky do listu obrazky_import[]
-     * - nechá TODO časť pre študenta (vzor() + posuny)
-     */
     function generatePythonTemplate(draft) {
         const base = sanitizeBaseName(draft.name);
         const fnA = `${base}0.png`;
         const fnB = `${base}1.png`;
         const fnC = `${base}2.png`;
-
-        // C pridáme len ak existuje (ak chceš vždy 3, odstráň túto podmienku)
         const hasC = !!(draft?.images?.C?.dataUrl);
 
         const loadLines = [
@@ -1186,8 +1223,8 @@
             "# nacitanie obrazkov do zoznamu",
             ...loadLines,
             "",
+            "# A = obrazky_import[0], B = obrazky_import[1], C = obrazky_import[2] (ak existuje)",
             "# TODO: dopln funkciu vzor() podla zadania",
-            "# Tip: obrazky_import[0] = A, obrazky_import[1] = B, obrazky_import[2] = C (ak existuje)",
             "def vzor():",
             "    # sem dopln canvas.create_image(...)",
             "    pass",
@@ -1199,14 +1236,13 @@
             "",
             "tk.mainloop()",
             "",
-        ].join("\n"); // ✅ DÔLEŽITÉ: join('\\n') – nie join()
+        ].join("\n");
     }
 
     /* =======================================================
        17) EVENTY – LIVE PREVIEW + UI
        ======================================================= */
 
-    /** Napojí live-preview eventy (len raz). */
     function wireEditorLivePreviewEventsOnce() {
         els.inpTaskName.addEventListener("input", () => {
             editor.data.name = els.inpTaskName.value.trim();
@@ -1215,7 +1251,17 @@
             renderEditorPreview();
         });
 
-        els.patternRadioRoot.addEventListener("change", () => renderEditorPreview());
+        els.patternRadioRoot.addEventListener("change", () => {
+            updateCustomPatternUI();
+            renderEditorPreview();
+        });
+
+        if (els.inpCustomPattern) {
+            els.inpCustomPattern.addEventListener("input", () => {
+                els.inpCustomPattern.value = normalizeCustomPattern(els.inpCustomPattern.value);
+                renderEditorPreview();
+            });
+        }
 
         els.chkBeforeAfter.addEventListener("change", () => {
             updateBeforeAfterUI();
@@ -1234,15 +1280,12 @@
         });
     }
 
-    /** Napojí všetky eventy aplikácie (index + editor). */
     function wireEvents() {
-        // index
         els.btnAdd.addEventListener("click", onAddTask);
         els.btnSave.addEventListener("click", onSaveProject);
         els.btnLoad.addEventListener("click", onLoadProjectClick);
         els.btnExport.addEventListener("click", () => onExport().catch(console.error));
 
-        // file load
         els.fileLoad.addEventListener("change", (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -1252,7 +1295,6 @@
             });
         });
 
-        // editor close (X + klik na pozadie + ESC)
         els.btnEditorClose.addEventListener("click", () => showOverlay(false));
         els.editorOverlay.addEventListener("click", (e) => {
             if (e.target.classList.contains("overlay__backdrop")) showOverlay(false);
@@ -1261,19 +1303,17 @@
             if (e.key === "Escape" && els.editorOverlay && !els.editorOverlay.hidden) showOverlay(false);
         });
 
-        // editor actions
         els.btnRandom.addEventListener("click", applyRandomSettings);
         els.btnDone.addEventListener("click", saveEditor);
 
         wireEditorLivePreviewEventsOnce();
     }
 
-    /** Skontroluje, či máme všetky potrebné DOM prvky (ak nie, vyhodí chybu). */
     function assertElements() {
         const required = [
             "tasksRoot","emptyState","tpl","btnAdd","btnLoad","btnSave","btnExport","fileLoad",
-            "editorOverlay","btnEditorClose","inpTaskName","patternRadioRoot","chkBeforeAfter",
-            "segBeforeAfterSymbol","inpRepeat","inpMissing","inpXdist","btnRandom","btnDone",
+            "editorOverlay","btnEditorClose","inpTaskName","patternRadioRoot","inpCustomPattern","customPatternField",
+            "chkBeforeAfter","segBeforeAfterSymbol","inpRepeat","inpMissing","inpXdist","btnRandom","btnDone",
         ];
         for (const k of required) {
             if (!els[k]) throw new Error(`Missing element #${k} in DOM`);
@@ -1284,7 +1324,6 @@
        18) INIT
        ======================================================= */
 
-    // Pri resize prepočítaj canvas výšku a prerenderuj ukážku
     window.addEventListener(
         "resize",
         debounce(() => {
@@ -1293,7 +1332,6 @@
         }, 120)
     );
 
-    // Spustenie po načítaní DOM
     document.addEventListener("DOMContentLoaded", () => {
         try {
             assertElements();
@@ -1307,13 +1345,9 @@
     });
 
     /* =======================================================
-       19) ŽIACKY EXPORT BUNDLE (HTML + JS + CSS)
-       - POZOR: musí byť validný HTML dokument (head + body)
-       - Header je “teacher-like” (logo vľavo), ale iné farby
-       - Obsah zadaní je v JSON vložený priamo do student.html
+       19) ŽIACKY EXPORT BUNDLE
        ======================================================= */
 
-    /** Šablóna student.html (validný dokument + teacher-like header). */
     const STUDENT_HTML_TEMPLATE = `<!doctype html>
 <html lang="sk">
 <head>
@@ -1375,7 +1409,6 @@
 </body>
 </html>`;
 
-    /** Štýly pre student stránku (bez redundantných “starých” topbar štýlov). */
     const STUDENT_STYLES_CSS = `
 :root{
   --orange:#C45A0A;
@@ -1406,7 +1439,6 @@ body{
   color:var(--text);
 }
 
-/* ===== Header (teacher-like layout, student farby) ===== */
 .topbar.topbar--student{
   position:sticky;
   top:0;
@@ -1467,7 +1499,6 @@ body{
   text-shadow:0 1px 0 rgba(0,0,0,.10);
 }
 
-/* ===== Layout ===== */
 .wrap{max-width:1100px;margin:18px auto 60px;padding:0 16px}
 .pageTitle{margin:24px 0 6px;text-align:center;font-size:44px;letter-spacing:-.02em}
 .pageSub{margin:0 0 22px;text-align:center;color:rgba(19,32,51,.65)}
@@ -1550,18 +1581,13 @@ body{
 }
 `;
 
-    /** Žiacky JS – render listu zadaní + download kódu + show/hide + download all zip. */
     const STUDENT_APP_JS = `(() => {
   "use strict";
 
-  // =============== DOM ===============
   const root = document.getElementById("studentRoot");
   const dataEl = document.getElementById("tasksData");
   const btnDownloadAll = document.getElementById("btnDownloadAll");
 
-  // =============== Pomocné funkcie ===============
-
-  // Bezpečný base názov (na názvy súborov)
   function sanitizeBaseName(name) {
     const raw = (name || "").trim();
     if (!raw) return "zadanie";
@@ -1570,7 +1596,20 @@ body{
     return safe || "zadanie";
   }
 
-  // Stiahni textový súbor
+  function normalizeCustomPattern(value) {
+    return String(value || "")
+      .toUpperCase()
+      .replace(/\\s+/g, "")
+      .replace(/[^ABC]/g, "");
+  }
+
+  function getEffectivePatternString(t) {
+    if (t.isCustomPattern) {
+      return normalizeCustomPattern(t.customPattern) || "AB";
+    }
+    return String(t.patternType || "AB").trim();
+  }
+
   function downloadText(filename, text) {
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1581,7 +1620,6 @@ body{
     URL.revokeObjectURL(url);
   }
 
-  // Stiahni dataURL ako súbor
   function downloadDataUrl(filename, dataUrl) {
     const a = document.createElement("a");
     a.href = dataUrl;
@@ -1589,7 +1627,6 @@ body{
     a.click();
   }
 
-  // dataURL -> bytes (pre ZIP)
   function dataUrlToUint8Array(dataUrl) {
     const parts = String(dataUrl).split(",");
     const meta = parts[0] || "";
@@ -1604,7 +1641,6 @@ body{
     return bytes;
   }
 
-  // Stiahni všetko – ZIP ak je JSZip, inak jednotlivo
   async function downloadAllZip(tasks) {
     if (typeof window.JSZip !== "undefined") {
       const zip = new window.JSZip();
@@ -1614,10 +1650,8 @@ body{
       tasks.forEach((t, idx) => {
         const base = sanitizeBaseName(t.name || ("zadanie" + (idx + 1)));
 
-        // python
         folderPy.file(base + ".py", t.pythonText || "");
 
-        // images
         for (const slot of ["A", "B", "C"]) {
           const meta = t.images?.[slot];
           if (!meta?.dataUrl) continue;
@@ -1637,7 +1671,6 @@ body{
       return;
     }
 
-    // fallback: jednotlivo
     tasks.forEach((t, idx) => {
       const base = sanitizeBaseName(t.name || ("zadanie" + (idx + 1)));
       downloadText(base + ".py", t.pythonText || "");
@@ -1650,13 +1683,12 @@ body{
     });
   }
 
-  // Sekvencia bez missing
   function buildSymbolSequenceWithoutMissing(t) {
-    const base = String(t.patternType || "AB").trim();
+    const base = getEffectivePatternString(t);
     const repeat = Math.max(1, Number(t.repeatCount || 1));
     let seq = [];
 
-    if (t.patternMode === "growing") {
+    if (t.patternMode === "growing" && !t.isCustomPattern) {
       for (let i = 1; i <= repeat; i++) {
         const part = base.slice(0, Math.min(base.length, i));
         seq.push(...part.split(""));
@@ -1675,14 +1707,12 @@ body{
     return seq.map(c => (c === "A" || c === "B" || c === "C") ? c : null);
   }
 
-  // Sekvencia s missing podľa missingIndices
   function buildSymbolSequence(t) {
     const seq = buildSymbolSequenceWithoutMissing(t);
     const holes = new Set(Array.isArray(t.missingIndices) ? t.missingIndices : []);
     return seq.map((v, i) => (holes.has(i) ? null : v));
   }
 
-  // Vytvorí jeden tile (obrázok alebo prázdny placeholder)
   function tileFor(symbol, t) {
     if (symbol === null) {
       const div = document.createElement("div");
@@ -1712,7 +1742,6 @@ body{
     return div;
   }
 
-  // =============== Render ===============
   function render() {
     root.innerHTML = "";
 
@@ -1774,7 +1803,6 @@ body{
       head.appendChild(titleRow);
       head.appendChild(actions);
 
-      // preview
       const preview = document.createElement("div");
       preview.className = "preview";
       const strip = document.createElement("div");
@@ -1784,7 +1812,6 @@ body{
       seq.forEach(sym => strip.appendChild(tileFor(sym, t)));
       preview.appendChild(strip);
 
-      // code box
       const codeBox = document.createElement("div");
       codeBox.className = "codeBox";
       codeBox.hidden = true;
@@ -1830,5 +1857,4 @@ body{
   render();
 })();`;
 
-    /* ---------------- Koniec bundle ---------------- */
 })();

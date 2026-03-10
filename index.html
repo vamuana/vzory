@@ -125,7 +125,19 @@
                             <!-- built from JS -->
                         </div>
                     </div>
-
+                    <div class="field" id="customPatternField" style="display:none;">
+                        <span class="field__label">Vlastný vzor</span>
+                        <input
+                                id="inpCustomPattern"
+                                class="input"
+                                type="text"
+                                placeholder="napr. ABCAB"
+                                maxlength="50"
+                        />
+                        <div class="panel__hint" style="margin-top:6px;">
+                            Použi iba písmená A, B, C. Napr. ABAC alebo CBA.
+                        </div>
+                    </div>
                     <div class="field field--row">
                         <label class="check">
                             <input id="chkBeforeAfter" type="checkbox" />
