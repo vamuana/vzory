@@ -1550,14 +1550,34 @@ body{
   background:linear-gradient(180deg, rgba(248,251,255,.9), rgba(244,248,252,.9));
   overflow:auto;
 }
-.strip{display:flex;gap:10px;align-items:center;min-height:64px}
-.tileImg{width:48px;height:48px;object-fit:contain}
-.tileBlank{
-  width:48px;height:48px;border-radius:12px;
-  border:2px dashed rgba(19,32,51,.22);
-  background:rgba(255,255,255,.55);
+.strip{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  min-height:64px;
 }
 
+.tileImg{
+  width:48px;
+  height:48px;
+  min-width:48px;
+  min-height:48px;
+  flex:0 0 48px;
+  object-fit:contain;
+  display:block;
+}
+
+.tileBlank{
+  width:48px;
+  height:48px;
+  min-width:48px;
+  min-height:48px;
+  flex:0 0 48px;
+  border-radius:12px;
+  border:2px dashed rgba(19,32,51,.22);
+  background:rgba(255,255,255,.55);
+  display:block;
+}
 .codeBox{
   margin-top:12px;
   border:1px solid rgba(19,32,51,.12);
