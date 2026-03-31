@@ -39,9 +39,9 @@
                     missingIndices: [],
                     xDist: 25,
                     images: {
-                        A: { fileName: "kruhy0.png", dataUrl: null, hash: null },
-                        B: { fileName: "kruhy1.png", dataUrl: null, hash: null },
-                        C: { fileName: "kruhy2.png", dataUrl: null, hash: null },
+                        A: { source: null, fileName: "kruhy0.png", dataUrl: null, hash: null, libraryPath: null },
+                        B: { source: null, fileName: "kruhy1.png", dataUrl: null, hash: null, libraryPath: null },
+                        C: { source: null, fileName: "kruhy2.png", dataUrl: null, hash: null, libraryPath: null },
                     },
                     previewPngDataUrl: null,
                     pythonText: null,
@@ -53,7 +53,10 @@
     /* =======================================================
        2) DOM ELEMENTY
        ======================================================= */
-
+    const libraryPickerState = {
+        slot: null,
+        resolve: null,
+    };
     const els = {
         // Index
         tasksRoot: document.getElementById("tasksRoot"),
@@ -64,7 +67,9 @@
         btnSave: document.getElementById("btnSave"),
         btnExport: document.getElementById("btnExport"),
         fileLoad: document.getElementById("fileLoad"),
-
+        libraryOverlay: document.getElementById("libraryOverlay"),
+        btnLibraryClose: document.getElementById("btnLibraryClose"),
+        libraryGrid: document.getElementById("libraryGrid"),
         // Editor overlay
         editorOverlay: document.getElementById("editorOverlay"),
         btnEditorClose: document.getElementById("btnEditorClose"),
@@ -140,9 +145,9 @@
             missingIndices: [],
             xDist: 25,
             images: {
-                A: { fileName: "", dataUrl: null, hash: null },
-                B: { fileName: "", dataUrl: null, hash: null },
-                C: { fileName: "", dataUrl: null, hash: null },
+                A: { source: null, fileName: "", dataUrl: null, hash: null, libraryPath: null },
+                B: { source: null, fileName: "", dataUrl: null, hash: null, libraryPath: null },
+                C: { source: null, fileName: "", dataUrl: null, hash: null, libraryPath: null },
             },
         };
     }
@@ -150,7 +155,23 @@
     /* =======================================================
        5) POMOCNÉ FUNKCIE (UTILS)
        ======================================================= */
+    const IMAGE_LIBRARY = [
+        { name: "hamburger0", path: "images/hamburger0.png" },
+        { name: "hamburger1", path: "images/hamburger1.png" },
+        { name: "hamburger2", path: "images/hamburger2.png" },
 
+        { name: "kruh0", path: "images/kruh0.png" },
+        { name: "kruh1", path: "images/kruh1.png" },
+
+        { name: "kvet0", path: "images/kvet0.png" },
+
+        { name: "naoblohe0", path: "images/naoblohe0.png" },
+        { name: "naoblohe1", path: "images/naoblohe1.png" },
+
+        { name: "ovocie0", path: "images/ovocie0.png" },
+        { name: "ovocie1", path: "images/ovocie1.png" },
+        { name: "ovocie2", path: "images/ovocie2.png" },
+    ];
     function clampInt(v, min, max, fallback) {
         const n = Number.parseInt(v, 10);
         if (Number.isNaN(n)) return fallback;
@@ -385,19 +406,25 @@
                 xDist: Number(t.xDist ?? 25),
                 images: {
                     A: {
+                        source: t.images?.A?.source || null,
                         fileName: t.images?.A?.fileName || "",
                         dataUrl: t.images?.A?.dataUrl || null,
                         hash: t.images?.A?.hash || null,
+                        libraryPath: t.images?.A?.libraryPath || null,
                     },
                     B: {
+                        source: t.images?.B?.source || null,
                         fileName: t.images?.B?.fileName || "",
                         dataUrl: t.images?.B?.dataUrl || null,
                         hash: t.images?.B?.hash || null,
+                        libraryPath: t.images?.B?.libraryPath || null,
                     },
                     C: {
+                        source: t.images?.C?.source || null,
                         fileName: t.images?.C?.fileName || "",
                         dataUrl: t.images?.C?.dataUrl || null,
                         hash: t.images?.C?.hash || null,
+                        libraryPath: t.images?.C?.libraryPath || null,
                     },
                 },
                 previewPngDataUrl: t.previewPngDataUrl || null,
@@ -411,7 +438,11 @@
     /* =======================================================
        10) EXPORT ZIP (ŽIAK)
        ======================================================= */
-
+    async function pathToUint8Array(path) {
+        const res = await fetch(path);
+        const buf = await res.arrayBuffer();
+        return new Uint8Array(buf);
+    }
     function dataUrlToUint8Array(dataUrl) {
         const parts = String(dataUrl).split(",");
         const meta = parts[0] || "";
@@ -458,9 +489,24 @@
             missingIndices: Array.isArray(t.missingIndices) ? t.missingIndices : [],
             xDist: Number(t.xDist ?? 25),
             images: {
-                A: { fileName: t.images?.A?.fileName || "", dataUrl: t.images?.A?.dataUrl || null },
-                B: { fileName: t.images?.B?.fileName || "", dataUrl: t.images?.B?.dataUrl || null },
-                C: { fileName: t.images?.C?.fileName || "", dataUrl: t.images?.C?.dataUrl || null },
+                A: {
+                    fileName: t.images?.A?.fileName || "",
+                    dataUrl: t.images?.A?.dataUrl || null,
+                    source: t.images?.A?.source || null,
+                    libraryPath: t.images?.A?.libraryPath || null,
+                },
+                B: {
+                    fileName: t.images?.B?.fileName || "",
+                    dataUrl: t.images?.B?.dataUrl || null,
+                    source: t.images?.B?.source || null,
+                    libraryPath: t.images?.B?.libraryPath || null,
+                },
+                C: {
+                    fileName: t.images?.C?.fileName || "",
+                    dataUrl: t.images?.C?.dataUrl || null,
+                    source: t.images?.C?.source || null,
+                    libraryPath: t.images?.C?.libraryPath || null,
+                },
             },
             pythonText: t.pythonText || generatePythonTemplate(t),
             previewPngDataUrl: t.previewPngDataUrl || null,
@@ -487,9 +533,18 @@
 
             for (const slot of ["A", "B", "C"]) {
                 const img = t.images?.[slot];
-                if (!img?.dataUrl || !img?.fileName) continue;
-                const bytes = dataUrlToUint8Array(img.dataUrl);
-                tasksFolder.file(img.fileName, bytes, { binary: true });
+                if (!img) continue;
+
+                if (img.source === "upload" && img.dataUrl && img.fileName) {
+                    const bytes = dataUrlToUint8Array(img.dataUrl);
+                    tasksFolder.file(img.fileName, bytes, { binary: true });
+                }
+
+                if (img.source === "library" && img.libraryPath) {
+                    const bytes = await pathToUint8Array(img.libraryPath);
+                    const fileName = img.fileName || img.libraryPath.split("/").pop();
+                    tasksFolder.file(fileName, bytes, { binary: true });
+                }
             }
         }
 
@@ -575,9 +630,27 @@
             missingIndices: Array.isArray(t.missingIndices) ? t.missingIndices.slice() : [],
             xDist: Number(t.xDist ?? 25),
             images: {
-                A: { fileName: t.images?.A?.fileName || "", dataUrl: t.images?.A?.dataUrl || null, hash: t.images?.A?.hash || null },
-                B: { fileName: t.images?.B?.fileName || "", dataUrl: t.images?.B?.dataUrl || null, hash: t.images?.B?.hash || null },
-                C: { fileName: t.images?.C?.fileName || "", dataUrl: t.images?.C?.dataUrl || null, hash: t.images?.C?.hash || null },
+                A: {
+                    source: t.images?.A?.source || null,
+                    fileName: t.images?.A?.fileName || "",
+                    dataUrl: t.images?.A?.dataUrl || null,
+                    hash: t.images?.A?.hash || null,
+                    libraryPath: t.images?.A?.libraryPath || null
+                },
+                B: {
+                    source: t.images?.B?.source || null,
+                    fileName: t.images?.B?.fileName || "",
+                    dataUrl: t.images?.B?.dataUrl || null,
+                    hash: t.images?.B?.hash || null,
+                    libraryPath: t.images?.B?.libraryPath || null
+                },
+                C: {
+                    source: t.images?.C?.source || null,
+                    fileName: t.images?.C?.fileName || "",
+                    dataUrl: t.images?.C?.dataUrl || null,
+                    hash: t.images?.C?.hash || null,
+                    libraryPath: t.images?.C?.libraryPath || null
+                },
             },
         };
 
@@ -616,7 +689,7 @@
 
         setupImagePickersIfNeeded();
         refreshImagePickerLabels();
-
+        updateImagePickerVisibility();
         setupPreviewCanvasIfNeeded();
         renderEditorPreview();
     }
@@ -731,7 +804,23 @@
         const seqLen = buildSymbolSequenceWithoutMissing(editor.data).length;
         ensureStableMissingIndices(editor.data, seqLen);
     }
+    function updateImagePickerVisibility() {
+        if (!picker.rows.length) return;
 
+        readEditorIntoDraft();
+        const used = getUsedSymbols(editor.data);
+
+        picker.rows.forEach((row) => {
+            const slot = row.dataset.slot;
+            if (!slot) return;
+
+            if (slot === "C") {
+                row.style.display = used.C ? "flex" : "none";
+            } else {
+                row.style.display = "flex";
+            }
+        });
+    }
     function saveEditor() {
         readEditorIntoDraft();
 
@@ -746,7 +835,22 @@
             els.inpCustomPattern.focus();
             return;
         }
+        const used = getUsedSymbols(editor.data);
 
+        if (used.A && !editor.data.images.A?.source) {
+            alert("Vo vzore sa používa obrázok A, ale nie je vybraný.");
+            return;
+        }
+
+        if (used.B && !editor.data.images.B?.source) {
+            alert("Vo vzore sa používa obrázok B, ale nie je vybraný.");
+            return;
+        }
+
+        if (used.C && !editor.data.images.C?.source) {
+            alert("Vo vzore sa používa obrázok C, ale nie je vybraný.");
+            return;
+        }
         const pythonText = generatePythonTemplate(editor.data);
         const previewPngDataUrl = snapshotPreviewAsCroppedDataUrl();
 
@@ -766,9 +870,27 @@
                 missingIndices: Array.isArray(editor.data.missingIndices) ? editor.data.missingIndices.slice() : [],
                 xDist: editor.data.xDist,
                 images: {
-                    A: { fileName: editor.data.images.A.fileName, dataUrl: editor.data.images.A.dataUrl || null, hash: editor.data.images.A.hash || null },
-                    B: { fileName: editor.data.images.B.fileName, dataUrl: editor.data.images.B.dataUrl || null, hash: editor.data.images.B.hash || null },
-                    C: { fileName: editor.data.images.C.fileName, dataUrl: editor.data.images.C.dataUrl || null, hash: editor.data.images.C.hash || null },
+                    A: {
+                        source: editor.data.images.A.source || null,
+                        fileName: editor.data.images.A.fileName,
+                        dataUrl: editor.data.images.A.dataUrl || null,
+                        hash: editor.data.images.A.hash || null,
+                        libraryPath: editor.data.images.A.libraryPath || null,
+                    },
+                    B: {
+                        source: editor.data.images.B.source || null,
+                        fileName: editor.data.images.B.fileName,
+                        dataUrl: editor.data.images.B.dataUrl || null,
+                        hash: editor.data.images.B.hash || null,
+                        libraryPath: editor.data.images.B.libraryPath || null,
+                    },
+                    C: {
+                        source: editor.data.images.C.source || null,
+                        fileName: editor.data.images.C.fileName,
+                        dataUrl: editor.data.images.C.dataUrl || null,
+                        hash: editor.data.images.C.hash || null,
+                        libraryPath: editor.data.images.C.libraryPath || null,
+                    },
                 },
                 previewPngDataUrl,
                 pythonText,
@@ -791,9 +913,27 @@
                 missingIndices: Array.isArray(editor.data.missingIndices) ? editor.data.missingIndices.slice() : [],
                 xDist: editor.data.xDist,
                 images: {
-                    A: { fileName: editor.data.images.A.fileName, dataUrl: editor.data.images.A.dataUrl || null, hash: editor.data.images.A.hash || null },
-                    B: { fileName: editor.data.images.B.fileName, dataUrl: editor.data.images.B.dataUrl || null, hash: editor.data.images.B.hash || null },
-                    C: { fileName: editor.data.images.C.fileName, dataUrl: editor.data.images.C.dataUrl || null, hash: editor.data.images.C.hash || null },
+                    A: {
+                        source: editor.data.images.A.source || null,
+                        fileName: editor.data.images.A.fileName,
+                        dataUrl: editor.data.images.A.dataUrl || null,
+                        hash: editor.data.images.A.hash || null,
+                        libraryPath: editor.data.images.A.libraryPath || null,
+                    },
+                    B: {
+                        source: editor.data.images.B.source || null,
+                        fileName: editor.data.images.B.fileName,
+                        dataUrl: editor.data.images.B.dataUrl || null,
+                        hash: editor.data.images.B.hash || null,
+                        libraryPath: editor.data.images.B.libraryPath || null,
+                    },
+                    C: {
+                        source: editor.data.images.C.source || null,
+                        fileName: editor.data.images.C.fileName,
+                        dataUrl: editor.data.images.C.dataUrl || null,
+                        hash: editor.data.images.C.hash || null,
+                        libraryPath: editor.data.images.C.libraryPath || null,
+                    },
                 },
                 previewPngDataUrl,
                 pythonText,
@@ -854,7 +994,14 @@
     /* =======================================================
        14) UPLOAD OBRÁZKOV A/B/C + HASH
        ======================================================= */
-
+    function getUsedSymbols(draft) {
+        const pattern = getEffectivePatternString(draft);
+        return {
+            A: pattern.includes("A") || draft.beforeAfterEnabled && draft.beforeAfterSymbol === "A",
+            B: pattern.includes("B") || draft.beforeAfterEnabled && draft.beforeAfterSymbol === "B",
+            C: pattern.includes("C") || draft.beforeAfterEnabled && draft.beforeAfterSymbol === "C",
+        };
+    }
     function setupImagePickersIfNeeded() {
         if (picker.rows.length) return;
 
@@ -862,17 +1009,15 @@
         if (!rightCard) return;
 
         picker.rows = Array.from(rightCard.querySelectorAll(".imgRow"));
-        const map = { 0: "A", 1: "B", 2: "C" };
 
-        picker.rows.forEach((row, idx) => {
-            const slot = map[idx];
+        picker.rows.forEach((row) => {
+            const slot = row.dataset.slot;
             if (!slot) return;
 
-            const btn = row.querySelector("button");
+            const btnLibrary = row.querySelector(".btnLibrary");
+            const btnUpload = row.querySelector(".btnUpload");
             const fileLabel = row.querySelector(".imgFile");
-            if (!btn || !fileLabel) return;
-
-            btn.disabled = false;
+            if (!btnLibrary || !btnUpload || !fileLabel) return;
 
             const inp = document.createElement("input");
             inp.type = "file";
@@ -898,31 +1043,63 @@
                     return;
                 }
 
+                editor.data.images[slot].source = "upload";
                 editor.data.images[slot].dataUrl = dataUrl;
+                editor.data.images[slot].hash = hash;
+                editor.data.images[slot].libraryPath = null;
+
+                refreshImagePickerLabels();
+                renderEditorPreview();
+            });
+
+            btnUpload.addEventListener("click", () => {
+                const nm = (els.inpTaskName.value || "").trim();
+                if (!nm) {
+                    alert("Najprv zadaj meno zadania.");
+                    els.inpTaskName.focus();
+                    return;
+                }
+
+                editor.data.name = nm;
+                ensureImageFileNamesFromTaskName(editor.data);
+                refreshImagePickerLabels();
+
+                inp.value = "";
+                inp.click();
+            });
+
+            btnLibrary.addEventListener("click", async () => {
+                const selected = await openLibraryPicker(slot);
+                if (!selected) return;
+
+                const hash = await hashFromPath(selected.path);
+
+                if (slot === "A" && editor.data.images.B.hash && editor.data.images.B.hash === hash) {
+                    alert("Obrázok A nemôže byť rovnaký ako obrázok B.");
+                    return;
+                }
+                if (slot === "B" && editor.data.images.A.hash && editor.data.images.A.hash === hash) {
+                    alert("Obrázok B nemôže byť rovnaký ako obrázok A.");
+                    return;
+                }
+
+                editor.data.images[slot].source = "library";
+                editor.data.images[slot].libraryPath = selected.path;
+                editor.data.images[slot].fileName = selected.path.split("/").pop();
+                editor.data.images[slot].dataUrl = null;
                 editor.data.images[slot].hash = hash;
 
                 refreshImagePickerLabels();
                 renderEditorPreview();
             });
 
-            btn.addEventListener("click", () => {
-                const nm = (els.inpTaskName.value || "").trim();
-                if (!nm) {
-                    alert("Najprv zadaj meno zadania (kvôli názvom súborov).");
-                    els.inpTaskName.focus();
-                    return;
-                }
-                editor.data.name = nm;
-                ensureImageFileNamesFromTaskName(editor.data);
-                refreshImagePickerLabels();
-                inp.value = "";
-                inp.click();
-            });
-
             row.appendChild(inp);
 
             picker.inputs[slot] = inp;
-            picker.buttons[slot] = btn;
+            picker.buttons[slot] = {
+                upload: btnUpload,
+                library: btnLibrary,
+            };
             picker.fileLabels[slot] = fileLabel;
         });
     }
@@ -935,10 +1112,28 @@
         ["A", "B", "C"].forEach((slot) => {
             const lbl = picker.fileLabels[slot];
             if (!lbl) return;
-            const fn = editor.data.images?.[slot]?.fileName || "—";
-            const ok = !!editor.data.images?.[slot]?.dataUrl;
-            lbl.textContent = ok ? fn : "—";
-            lbl.classList.toggle("muted", !ok);
+
+            const meta = editor.data.images?.[slot];
+            if (!meta) {
+                lbl.textContent = "—";
+                lbl.classList.add("muted");
+                return;
+            }
+
+            if (meta.source === "upload" && meta.fileName) {
+                lbl.textContent = `upload: ${meta.fileName}`;
+                lbl.classList.remove("muted");
+                return;
+            }
+
+            if (meta.source === "library" && meta.libraryPath) {
+                lbl.textContent = `priečinok: ${meta.libraryPath.split("/").pop()}`;
+                lbl.classList.remove("muted");
+                return;
+            }
+
+            lbl.textContent = "—";
+            lbl.classList.add("muted");
         });
     }
 
@@ -950,7 +1145,58 @@
             r.readAsDataURL(file);
         });
     }
+    async function hashFromPath(path) {
+        const res = await fetch(path);
+        const buf = await res.arrayBuffer();
+        const hashBuf = await crypto.subtle.digest("SHA-256", buf);
+        const hashArr = Array.from(new Uint8Array(hashBuf));
+        return hashArr.map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
 
+    function openLibraryPicker(slot) {
+        return new Promise((resolve) => {
+            libraryPickerState.slot = slot;
+            libraryPickerState.resolve = resolve;
+
+            els.libraryGrid.innerHTML = "";
+
+            IMAGE_LIBRARY.forEach((img) => {
+                const card = document.createElement("button");
+                card.type = "button";
+                card.className = "libraryCard";
+
+                card.innerHTML = `
+                <div class="libraryCard__thumb">
+                    <img src="${img.path}" alt="${img.name}" />
+                </div>
+                <div class="libraryCard__name">${img.name}</div>
+            `;
+
+                card.addEventListener("click", () => {
+                    closeLibraryPicker(img);
+                });
+
+                els.libraryGrid.appendChild(card);
+            });
+
+            showLibraryOverlay(true);
+        });
+    }
+    function showLibraryOverlay(on) {
+        if (!els.libraryOverlay) return;
+        els.libraryOverlay.hidden = !on;
+    }
+
+    function closeLibraryPicker(selected = null) {
+        showLibraryOverlay(false);
+
+        if (libraryPickerState.resolve) {
+            libraryPickerState.resolve(selected);
+        }
+
+        libraryPickerState.slot = null;
+        libraryPickerState.resolve = null;
+    }
     async function readFileAsDataUrlAndHash(file) {
         const dataUrl = await readFileAsDataUrl(file);
         const buf = await file.arrayBuffer();
@@ -1108,10 +1354,18 @@
 
     async function drawTile(ctx, x, y, size, symbol, draft) {
         const slot = symbol;
-        const dataUrl = draft.images?.[slot]?.dataUrl;
+        const meta = draft.images?.[slot];
 
-        if (dataUrl) {
-            const img = await loadImage(dataUrl);
+        let src = null;
+
+        if (meta?.source === "upload" && meta?.dataUrl) {
+            src = meta.dataUrl;
+        } else if (meta?.source === "library" && meta?.libraryPath) {
+            src = meta.libraryPath;
+        }
+
+        if (src) {
+            const img = await loadImage(src);
             ctx.drawImage(img, x, y, size, size);
             return;
         }
@@ -1196,17 +1450,23 @@
 
     function generatePythonTemplate(draft) {
         const base = sanitizeBaseName(draft.name);
-        const fnA = `${base}0.png`;
-        const fnB = `${base}1.png`;
-        const fnC = `${base}2.png`;
-        const hasC = !!(draft?.images?.C?.dataUrl);
+        const used = getUsedSymbols(draft);
 
-        const loadLines = [
-            "obrazky_import = []",
-            `obrazky_import.append(tk.PhotoImage(file='${fnA}'))`,
-            `obrazky_import.append(tk.PhotoImage(file='${fnB}'))`,
-        ];
-        if (hasC) loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnC}'))`);
+        const fnA = draft.images?.A?.fileName || `${base}0.png`;
+        const fnB = draft.images?.B?.fileName || `${base}1.png`;
+        const fnC = draft.images?.C?.fileName || `${base}2.png`;
+
+        const loadLines = ["obrazky_import = []"];
+
+        if (used.A) {
+            loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnA}'))`);
+        }
+        if (used.B) {
+            loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnB}'))`);
+        }
+        if (used.C) {
+            loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnC}'))`);
+        }
 
         return [
             "import tkinter as tk",
@@ -1218,12 +1478,11 @@
             "sirka = 50",
             "vyska = 50",
             "pozicia_x = 10",
-            "pocet_opakovani = 6",
+            "pocet_opakovani = ",
             "",
             "# nacitanie obrazkov do zoznamu",
             ...loadLines,
             "",
-            "# A = obrazky_import[0], B = obrazky_import[1], C = obrazky_import[2] (ak existuje)",
             "# TODO: dopln funkciu vzor() podla zadania",
             "def vzor():",
             "    # sem dopln canvas.create_image(...)",
@@ -1253,18 +1512,21 @@
 
         els.patternRadioRoot.addEventListener("change", () => {
             updateCustomPatternUI();
+            updateImagePickerVisibility();
             renderEditorPreview();
         });
 
         if (els.inpCustomPattern) {
             els.inpCustomPattern.addEventListener("input", () => {
                 els.inpCustomPattern.value = normalizeCustomPattern(els.inpCustomPattern.value);
+                updateImagePickerVisibility();
                 renderEditorPreview();
             });
         }
 
         els.chkBeforeAfter.addEventListener("change", () => {
             updateBeforeAfterUI();
+            updateImagePickerVisibility();
             renderEditorPreview();
         });
 
@@ -1276,6 +1538,7 @@
             const btn = e.target.closest(".seg__btn");
             if (!btn) return;
             setSegValue(btn.dataset.val);
+            updateImagePickerVisibility();
             renderEditorPreview();
         });
     }
@@ -1285,7 +1548,13 @@
         els.btnSave.addEventListener("click", onSaveProject);
         els.btnLoad.addEventListener("click", onLoadProjectClick);
         els.btnExport.addEventListener("click", () => onExport().catch(console.error));
+        els.btnLibraryClose?.addEventListener("click", () => closeLibraryPicker(null));
 
+        els.libraryOverlay?.addEventListener("click", (e) => {
+            if (e.target.classList.contains("overlay__backdrop")) {
+                closeLibraryPicker(null);
+            }
+        });
         els.fileLoad.addEventListener("change", (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -1300,7 +1569,16 @@
             if (e.target.classList.contains("overlay__backdrop")) showOverlay(false);
         });
         document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && els.editorOverlay && !els.editorOverlay.hidden) showOverlay(false);
+            if (e.key !== "Escape") return;
+
+            if (els.libraryOverlay && !els.libraryOverlay.hidden) {
+                closeLibraryPicker(null);
+                return;
+            }
+
+            if (els.editorOverlay && !els.editorOverlay.hidden) {
+                showOverlay(false);
+            }
         });
 
         els.btnRandom.addEventListener("click", applyRandomSettings);
@@ -1313,7 +1591,7 @@
         const required = [
             "tasksRoot","emptyState","tpl","btnAdd","btnLoad","btnSave","btnExport","fileLoad",
             "editorOverlay","btnEditorClose","inpTaskName","patternRadioRoot","inpCustomPattern","customPatternField",
-            "chkBeforeAfter","segBeforeAfterSymbol","inpRepeat","inpMissing","inpXdist","btnRandom","btnDone",
+            "chkBeforeAfter","segBeforeAfterSymbol","inpRepeat","inpMissing","inpXdist","btnRandom","btnDone","libraryOverlay","btnLibraryClose","libraryGrid",
         ];
         for (const k of required) {
             if (!els[k]) throw new Error(`Missing element #${k} in DOM`);

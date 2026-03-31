@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tajný obrázok</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        :root {
+            --bg: #f6f1e6;
+            --bg-2: #efe7d6;
+            --card: #fffdf8;
+            --card-2: #fff7ea;
+            --text: #25324a;
+            --muted: #6c7a91;
+            --blue: #4a78d1;
+            --green-soft: #ddf7e6;
+            --red-soft: #fde4e3;
+            --red-text: #9a2e2b;
+            --hint-soft: #fff2cc;
+            --hint-text: #8b5b00;
+            --shadow: 0 18px 45px rgba(57, 72, 103, 0.14);
+        }
+
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+            background: radial-gradient(circle at top left, #fbf8f1 0%, var(--bg) 45%, var(--bg-2) 100%);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .hero {
+            background: linear-gradient(180deg, #ffffff 0%, #fffaf0 100%);
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+            margin-bottom: 22px;
+            border: 3px solid #95ace3;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -60px;
+            top: -60px;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(74,120,209,0.16) 0%, rgba(74,120,209,0.04) 65%, transparent 72%);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 38px;
+            color: var(--blue);
+            line-height: 1.1;
+            letter-spacing: 0.2px;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            max-width: 860px;
+            font-size: 16px;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            border: none;
+            border-radius: 14px;
+            padding: 11px 17px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+        }
+
+        button:hover { transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        .btn-primary {
+            background: linear-gradient(180deg, #5f8df2 0%, #3e6fd8 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #fffdf7 0%, #efe4cf 100%);
+            color: #594931;
+        }
+
+        .btn-success {
+            background: linear-gradient(180deg, #45b669 0%, #229148 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(180deg, #ffd06f 0%, #eca92d 100%);
+            color: #5b3900;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 390px 1fr;
+            gap: 22px;
+            align-items: start;
+        }
+
+        .panel {
+            background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+            border-radius: 28px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+            border: 3px solid #95ace3;
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 23px;
+            color: var(--blue);
+        }
+
+        .code-box {
+            background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+            border: 2px solid #d7e2f5;
+            border-radius: 18px;
+            padding: 16px 18px;
+            white-space: pre-wrap;
+            line-height: 1.85;
+            font-family: "Courier New", monospace;
+            min-height: 240px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1b2433;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+
+        .grid-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .grid-shell {
+            background: linear-gradient(180deg, #f4f7fe 0%, #edf2fb 100%);
+            border: 2px solid #d7e1f1;
+            border-radius: 22px;
+            padding: 14px;
+            width: fit-content;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+
+        .grid {
+            display: grid;
+            gap: 2px;
+            background: #485569;
+            padding: 2px;
+            border-radius: 14px;
+            width: fit-content;
+        }
+
+        .cell {
+            width: 42px;
+            height: 42px;
+            background: #ffffff;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+            transition: filter 0.12s ease;
+        }
+
+        .cell:hover {
+            filter: brightness(0.98);
+        }
+
+        .cell.filled {
+            background: linear-gradient(180deg, #61beff 0%, #2f94eb 100%);
+        }
+
+        .cell.correct-preview {
+            background: #f0f0f0;
+        }
+
+        .status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .badge {
+            background: linear-gradient(180deg, #eef4ff 0%, #dde9ff 100%);
+            color: #254d9f;
+            padding: 9px 14px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 14px;
+            border: 1px solid #c9d8fb;
+        }
+
+        .message {
+            padding: 13px 15px;
+            border-radius: 14px;
+            font-weight: 700;
+            line-height: 1.5;
+            border: 1px solid transparent;
+            max-width: 760px;
+        }
+
+        .ok {
+            background: var(--green-soft);
+            color: #1f6a3b;
+            border-color: #b9e3c7;
+        }
+
+        .bad {
+            background: var(--red-soft);
+            color: var(--red-text);
+            border-color: #efb9b7;
+        }
+
+        .hint {
+            background: var(--hint-soft);
+            color: var(--hint-text);
+            border-color: #f0d489;
+        }
+
+        .explain {
+            background: linear-gradient(180deg, #fffdfa 0%, #fff6e5 100%);
+            border-radius: 18px;
+            padding: 16px;
+            line-height: 1.7;
+            color: #5f4f35;
+            border: 2px solid #efd8a9;
+            font-size: 15px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .legend-swatch {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.12);
+            background: white;
+        }
+
+        .legend-swatch.blue {
+            background: linear-gradient(180deg, #61beff 0%, #2f94eb 100%);
+        }
+
+        @media (max-width: 980px) {
+            .layout { grid-template-columns: 1fr; }
+            .code-box { font-size: 21px; }
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 16px; }
+            .hero, .panel { padding: 18px; border-radius: 22px; }
+            h1 { font-size: 30px; }
+            .cell { width: 30px; height: 30px; }
+            .code-box { font-size: 18px; min-height: 190px; }
+            .grid-shell { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>Tajný obrázok</h1>
+        <p class="subtitle">
+            Interaktívna aplikácia na vysvetlenie kódovania a dekódovania obrázka podľa úlohy z iBobora.
+            Žiak vidí zakódovaný zápis a podľa neho skladá obrázok do mriežky.
+        </p>
+        <div class="toolbar">
+            <button class="btn-secondary" onclick="setLevel('easy')">Ľahká</button>
+            <button class="btn-secondary" onclick="setLevel('medium')">Stredná</button>
+            <button class="btn-secondary" onclick="setLevel('hard')">Ťažká</button>
+            <button class="btn-success" onclick="checkGrid()">Skontrolovať</button>
+            <button class="btn-warning" onclick="toggleSolution()">Ukáž riešenie</button>
+            <button class="btn-primary" onclick="resetGrid()">Vymazať</button>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="panel">
+            <h2>Zakódovaná správa</h2>
+            <div id="codeBox" class="code-box"></div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-swatch"></span> 0 = biele políčka</div>
+                <div class="legend-item"><span class="legend-swatch blue"></span> 1 = modré políčka</div>
+            </div>
+            <div style="height: 16px"></div>
+            <h2>Ako to funguje</h2>
+            <div class="explain">
+                Každý riadok je zapísaný presne v štýle úlohy z iBobora. Číslo pred dvojbodkou určuje, akou farbou riadok začína
+                (0 = biele, 1 = modré). Za dvojbodkou nasleduje postupnosť číslic bez medzier. Každá číslica hovorí,
+                koľko políčok za sebou má aktuálna farba. Potom sa farba vždy strieda.
+                Tvojou úlohou je podľa tohto zápisu správne vyfarbiť mriežku.
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Poskladaj obrázok</h2>
+            <div class="status">
+                <div class="badge" id="levelBadge">Úroveň: Ľahká</div>
+                <div class="badge" id="progressBadge">Zhoda: 0 %</div>
+            </div>
+            <div style="height: 16px"></div>
+            <div class="grid-wrap">
+                <div class="grid-shell">
+                    <div id="grid" class="grid"></div>
+                </div>
+                <div id="message"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const LEVELS = {
+        easy: {
+            label: 'Ľahká',
+            grid: [
+                [1,1,0,0,1,1,0,1,0,1,1],
+                [1,0,1,1,1,1,0,1,1,0,1],
+                [1,0,1,1,1,0,1,1,0,1,1],
+                [1,0,1,1,1,1,0,1,1,0,1],
+                [1,1,0,0,1,1,0,1,1,1,1]
+            ]
+        },
+        medium: {
+            label: 'Stredná',
+            grid: [
+                [1,1,0,0,1,1,0,1,0,1,1,0,1,0,1],
+                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
+                [1,0,1,1,1,0,1,1,0,1,1,0,1,1,1],
+                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
+                [1,1,0,0,1,1,0,1,1,1,1,0,0,1,1]
+            ]
+        },
+        hard: {
+            label: 'Ťažká',
+            grid: [
+                [1,1,0,0,1,1,0,1,0,1,1,0,1,0,1],
+                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
+                [1,0,1,1,1,0,1,1,0,1,1,0,0,1,1],
+                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
+                [1,1,0,0,1,1,0,1,1,1,1,0,0,0,1],
+                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
+                [1,0,1,1,1,0,1,1,0,1,1,0,0,1,1],
+                [1,1,0,0,1,1,0,1,0,1,1,0,1,0,1]
+            ]
+        }
+    };
+
+    let currentLevel = 'easy';
+    let userGrid = [];
+    let showingSolution = false;
+
+    function emptyGrid(size) {
+        return Array.from({ length: size }, () => Array(size).fill(0));
+    }
+
+    function encodeRow(row) {
+        let current = row[0];
+        let count = 1;
+        const runs = [];
+
+        for (let i = 1; i < row.length; i++) {
+            if (row[i] === current) {
+                count++;
+            } else {
+                runs.push(count);
+                current = row[i];
+                count = 1;
+            }
+        }
+
+        runs.push(count);
+        return `${row[0]}: ${runs.join('')}`;
+    }
+
+    function renderCode() {
+        const solution = LEVELS[currentLevel].grid;
+        const text = solution.map((row, i) => `${i + 1}. ${encodeRow(row)}`).join('\n');
+        document.getElementById('codeBox').textContent = text;
+        document.getElementById('levelBadge').textContent = `Úroveň: ${LEVELS[currentLevel].label}`;
+    }
+
+    function renderGrid() {
+        const solution = LEVELS[currentLevel].grid;
+        const size = solution.length;
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        grid.style.gridTemplateColumns = `repeat(${solution[0].length}, 38px)`;
+
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < solution[0].length; c++) {
+                const btn = document.createElement('button');
+                btn.className = 'cell';
+
+                if (showingSolution) {
+                    if (solution[r][c]) btn.classList.add('filled');
+                    else btn.classList.add('correct-preview');
+                } else if (userGrid[r][c]) {
+                    btn.classList.add('filled');
+                }
+
+                btn.onclick = () => {
+                    if (showingSolution) return;
+                    userGrid[r][c] = userGrid[r][c] ? 0 : 1;
+                    renderGrid();
+                    updateProgress();
+                    clearMessage();
+                };
+
+                grid.appendChild(btn);
+            }
+        }
+    }
+
+    function updateProgress() {
+        const solution = LEVELS[currentLevel].grid;
+        let ok = 0;
+        let total = 0;
+        for (let r = 0; r < solution.length; r++) {
+            for (let c = 0; c < solution[0].length; c++) {
+                total++;
+                if (userGrid[r][c] === solution[r][c]) ok++;
+            }
+        }
+        const percent = Math.round((ok / total) * 100);
+        document.getElementById('progressBadge').textContent = `Zhoda: ${percent} %`;
+    }
+
+    function setMessage(text, cls) {
+        const box = document.getElementById('message');
+        box.className = `message ${cls}`;
+        box.textContent = text;
+    }
+
+    function clearMessage() {
+        const box = document.getElementById('message');
+        box.className = '';
+        box.textContent = '';
+    }
+
+    function checkGrid() {
+        const solution = LEVELS[currentLevel].grid;
+        let allCorrect = true;
+        for (let r = 0; r < solution.length; r++) {
+            for (let c = 0; c < solution.length; c++) {
+                if (userGrid[r][c] !== solution[r][c]) allCorrect = false;
+            }
+        }
+        updateProgress();
+        if (allCorrect) {
+            setMessage('Výborne! Obrázok si rozkódoval(a) správne.', 'ok');
+        } else {
+            setMessage('Ešte tam je chyba. Skús porovnať zápis s jednotlivými riadkami.', 'bad');
+        }
+    }
+
+    function resetGrid() {
+        userGrid = emptyGrid(LEVELS[currentLevel].grid.length);
+        showingSolution = false;
+        renderGrid();
+        updateProgress();
+        clearMessage();
+    }
+
+    function toggleSolution() {
+        showingSolution = !showingSolution;
+        renderGrid();
+        if (showingSolution) {
+            setMessage('Toto je správne riešenie. Číslo pred dvojbodkou určuje počiatočnú farbu a ďalšie číslice udávajú dĺžky po sebe idúcich úsekov.', 'hint');
+        } else {
+            clearMessage();
+        }
+    }
+
+    function setLevel(level) {
+        currentLevel = level;
+        userGrid = emptyGrid(LEVELS[currentLevel].grid.length);
+        showingSolution = false;
+        renderCode();
+        renderGrid();
+        updateProgress();
+        clearMessage();
+    }
+
+    setLevel('easy');
+</script>
+</body>
+</html>

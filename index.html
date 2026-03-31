@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Programovanie vzorov – Učiteľ</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
 <header class="topbar">
@@ -180,19 +180,24 @@
                     </div>
 
                     <div class="imgPickers">
-                        <div class="imgRow">
+                        <div class="imgRow" data-slot="A">
                             <span class="imgTag chip chip--orange">A</span>
-                            <button class="btn btn--ghost btn--small" type="button" disabled>Vyber obrázok A</button>
+                            <button class="btn btn--ghost btn--small btnLibrary" type="button">Z priečinka</button>
+                            <button class="btn btn--ghost btn--small btnUpload" type="button">Nahrať PNG</button>
                             <span class="imgFile muted">—</span>
                         </div>
-                        <div class="imgRow">
+
+                        <div class="imgRow" data-slot="B">
                             <span class="imgTag chip chip--yellow">B</span>
-                            <button class="btn btn--ghost btn--small" type="button" disabled>Vyber obrázok B</button>
+                            <button class="btn btn--ghost btn--small btnLibrary" type="button">Z priečinka</button>
+                            <button class="btn btn--ghost btn--small btnUpload" type="button">Nahrať PNG</button>
                             <span class="imgFile muted">—</span>
                         </div>
-                        <div class="imgRow">
+
+                        <div class="imgRow" data-slot="C">
                             <span class="imgTag chip chip--sky">C</span>
-                            <button class="btn btn--ghost btn--small" type="button" disabled>Vyber obrázok C</button>
+                            <button class="btn btn--ghost btn--small btnLibrary" type="button">Z priečinka</button>
+                            <button class="btn btn--ghost btn--small btnUpload" type="button">Nahrať PNG</button>
                             <span class="imgFile muted">—</span>
                         </div>
                     </div>
@@ -213,8 +218,25 @@
         </div>
     </div>
 </section>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<section id="libraryOverlay" class="overlay overlay--library" hidden>
+    <div class="overlay__backdrop"></div>
 
-<script src="app.js"></script>
+    <div class="overlay__panel overlay__panel--library" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+        <header class="editor__top">
+            <div class="editor__titles">
+                <div id="libraryTitle" class="editor__title">Vyber obrázok</div>
+                <div class="editor__subtitle">Klikni na obrázok, ktorý chceš použiť.</div>
+            </div>
+
+            <button id="btnLibraryClose" class="iconbtn" type="button" aria-label="Zavrieť">✕</button>
+        </header>
+
+        <div class="editor__body">
+            <div id="libraryGrid" class="libraryGrid"></div>
+        </div>
+    </div>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
