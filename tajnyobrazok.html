@@ -82,6 +82,13 @@
             margin-top: 20px;
         }
 
+        .levels-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
         button {
             border: none;
             border-radius: 14px;
@@ -104,6 +111,11 @@
         .btn-secondary {
             background: linear-gradient(180deg, #fffdf7 0%, #efe4cf 100%);
             color: #594931;
+        }
+
+        .btn-secondary.active-level {
+            background: linear-gradient(180deg, #5f8df2 0%, #3e6fd8 100%);
+            color: white;
         }
 
         .btn-success {
@@ -305,10 +317,10 @@
             Interaktívna aplikácia na vysvetlenie kódovania a dekódovania obrázka podľa úlohy z iBobora.
             Žiak vidí zakódovaný zápis a podľa neho skladá obrázok do mriežky.
         </p>
+
+        <div id="levelButtons" class="levels-row"></div>
+
         <div class="toolbar">
-            <button class="btn-secondary" onclick="setLevel('easy')">Ľahká</button>
-            <button class="btn-secondary" onclick="setLevel('medium')">Stredná</button>
-            <button class="btn-secondary" onclick="setLevel('hard')">Ťažká</button>
             <button class="btn-success" onclick="checkGrid()">Skontrolovať</button>
             <button class="btn-warning" onclick="toggleSolution()">Ukáž riešenie</button>
             <button class="btn-primary" onclick="resetGrid()">Vymazať</button>
@@ -336,8 +348,8 @@
         <div class="panel">
             <h2>Poskladaj obrázok</h2>
             <div class="status">
-                <div class="badge" id="levelBadge">Úroveň: Ľahká</div>
-                <div class="badge" id="progressBadge">Zhoda: 0 %</div>
+                <div class="badge" id="levelBadge">Úroveň: 1</div>
+                <div class="badge" id="progressBadge">Hotovo: 0 %</div>
             </div>
             <div style="height: 16px"></div>
             <div class="grid-wrap">
@@ -352,47 +364,139 @@
 
 <script>
     const LEVELS = {
-        easy: {
-            label: 'Ľahká',
+        level1: {
+            label: 'Úroveň 1',
             grid: [
-                [1,1,0,0,1,1,0,1,0,1,1],
-                [1,0,1,1,1,1,0,1,1,0,1],
-                [1,0,1,1,1,0,1,1,0,1,1],
-                [1,0,1,1,1,1,0,1,1,0,1],
-                [1,1,0,0,1,1,0,1,1,1,1]
+                [0,1,1,0,0,1,1,0],
+                [1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1],
+                [0,1,1,1,1,1,1,0],
+                [0,0,1,1,1,1,0,0],
+                [0,0,0,1,1,0,0,0]
             ]
         },
-        medium: {
-            label: 'Stredná',
+        level2: {
+            label: 'Úroveň 2',
             grid: [
-                [1,1,0,0,1,1,0,1,0,1,1,0,1,0,1],
-                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
-                [1,0,1,1,1,0,1,1,0,1,1,0,1,1,1],
-                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
-                [1,1,0,0,1,1,0,1,1,1,1,0,0,1,1]
+                [0,0,0,0,1,1,0,0,0,0],
+                [0,0,0,1,1,1,1,0,0,0],
+                [0,0,1,1,1,1,1,1,0,0],
+                [0,1,1,1,1,1,1,1,1,0],
+                [0,0,0,1,1,1,1,0,0,0],
+                [0,0,0,1,0,0,1,0,0,0],
+                [0,0,0,1,0,0,1,0,0,0],
+                [0,0,0,1,1,1,1,0,0,0]
             ]
         },
-        hard: {
-            label: 'Ťažká',
+        level3: {
+            label: 'Úroveň 3',
             grid: [
-                [1,1,0,0,1,1,0,1,0,1,1,0,1,0,1],
-                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
-                [1,0,1,1,1,0,1,1,0,1,1,0,0,1,1],
-                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
-                [1,1,0,0,1,1,0,1,1,1,1,0,0,0,1],
-                [1,0,1,1,1,1,0,1,1,0,1,1,1,0,1],
-                [1,0,1,1,1,0,1,1,0,1,1,0,0,1,1],
-                [1,1,0,0,1,1,0,1,0,1,1,0,1,0,1]
+                [0,0,1,1,1,1,1,1,0,0],
+                [0,1,0,0,0,0,0,0,1,0],
+                [1,0,1,0,0,0,0,1,0,1],
+                [1,0,1,0,0,0,0,1,0,1],
+                [1,0,0,0,0,0,0,0,0,1],
+                [1,0,1,0,0,0,0,1,0,1],
+                [1,0,0,1,1,1,1,0,0,1],
+                [0,1,0,0,0,0,0,0,1,0],
+                [0,0,1,1,1,1,1,1,0,0]
+            ]
+        },
+        level4: {
+            label: 'Úroveň 4',
+            grid: [
+                [0,0,0,1,0,0,0],
+                [0,0,1,1,1,0,0],
+                [1,1,1,1,1,1,1],
+                [0,1,1,1,1,1,0],
+                [0,0,1,1,1,0,0],
+                [0,1,0,1,0,1,0],
+                [1,0,0,1,0,0,1]
+            ]
+        },
+        level5: {
+            label: 'Úroveň 5',
+            grid: [
+                [0,0,0,1,0,0,0],
+                [0,0,1,1,1,0,0],
+                [0,1,1,1,1,1,0],
+                [1,1,1,1,1,1,1],
+                [0,0,0,1,0,0,0],
+                [0,0,0,1,0,0,0]
+            ]
+        },
+        level6: {
+            label: 'Úroveň 6',
+            grid: [
+                [0,0,1,0,1,0,0],
+                [0,1,1,1,1,1,0],
+                [1,1,1,1,1,1,1],
+                [0,1,1,1,1,1,0],
+                [0,0,1,1,1,0,0],
+                [0,0,0,1,0,0,0],
+                [0,0,0,1,0,0,0]
+            ]
+        },
+        level7: {
+            label: 'Úroveň 7',
+            grid: [
+                [0,0,1,1,1,0,0],
+                [0,1,0,0,0,1,0],
+                [1,0,1,0,1,0,1],
+                [1,0,0,0,0,0,1],
+                [1,0,1,1,1,0,1],
+                [0,1,0,0,0,1,0],
+                [0,0,1,1,1,0,0]
+            ]
+        },
+        level8: {
+            label: 'Úroveň 8',
+            grid: [
+                [0,0,1,1,1,1,0,0],
+                [0,1,1,0,0,1,1,0],
+                [1,1,0,0,0,0,1,1],
+                [1,1,0,1,1,0,1,1],
+                [1,1,0,1,1,0,1,1],
+                [1,1,0,0,0,0,1,1],
+                [0,1,1,0,0,1,1,0],
+                [0,0,1,1,1,1,0,0]
+            ]
+        },
+        level9: {
+            label: 'Úroveň 9',
+            grid: [
+                [0,0,0,1,1,0,0,0],
+                [0,0,1,1,1,1,0,0],
+                [0,1,1,0,0,1,1,0],
+                [1,1,0,0,0,0,1,1],
+                [1,1,0,0,0,0,1,1],
+                [0,1,1,0,0,1,1,0],
+                [0,0,1,1,1,1,0,0],
+                [0,0,0,1,1,0,0,0]
+            ]
+        },
+        level10: {
+            label: 'Úroveň 10',
+            grid: [
+                [0,0,1,1,1,1,1,1,0,0],
+                [0,1,1,0,0,0,0,1,1,0],
+                [1,1,0,1,0,0,1,0,1,1],
+                [1,0,0,0,1,1,0,0,0,1],
+                [1,0,0,1,1,1,1,0,0,1],
+                [1,0,0,0,1,1,0,0,0,1],
+                [1,1,0,1,0,0,1,0,1,1],
+                [0,1,1,0,0,0,0,1,1,0],
+                [0,0,1,1,1,1,1,1,0,0]
             ]
         }
     };
 
-    let currentLevel = 'easy';
+    let currentLevel = 'level1';
     let userGrid = [];
     let showingSolution = false;
 
-    function emptyGrid(size) {
-        return Array.from({ length: size }, () => Array(size).fill(0));
+    function emptyGrid(rows, cols) {
+        return Array.from({ length: rows }, () => Array(cols).fill(0));
     }
 
     function encodeRow(row) {
@@ -414,29 +518,45 @@
         return `${row[0]}: ${runs.join('')}`;
     }
 
+    function renderLevelButtons() {
+        const wrapper = document.getElementById('levelButtons');
+        wrapper.innerHTML = '';
+
+        Object.entries(LEVELS).forEach(([key, level]) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-secondary';
+            if (key === currentLevel) btn.classList.add('active-level');
+            btn.textContent = level.label;
+            btn.onclick = () => setLevel(key);
+            wrapper.appendChild(btn);
+        });
+    }
+
     function renderCode() {
         const solution = LEVELS[currentLevel].grid;
         const text = solution.map((row, i) => `${i + 1}. ${encodeRow(row)}`).join('\n');
         document.getElementById('codeBox').textContent = text;
-        document.getElementById('levelBadge').textContent = `Úroveň: ${LEVELS[currentLevel].label}`;
+        document.getElementById('levelBadge').textContent = `${LEVELS[currentLevel].label}`;
     }
 
     function renderGrid() {
         const solution = LEVELS[currentLevel].grid;
-        const size = solution.length;
+        const rows = solution.length;
+        const cols = solution[0].length;
         const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        grid.style.gridTemplateColumns = `repeat(${solution[0].length}, 38px)`;
 
-        for (let r = 0; r < size; r++) {
-            for (let c = 0; c < solution[0].length; c++) {
+        grid.innerHTML = '';
+        grid.style.gridTemplateColumns = `repeat(${cols}, 38px)`;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
                 const btn = document.createElement('button');
                 btn.className = 'cell';
 
                 if (showingSolution) {
-                    if (solution[r][c]) btn.classList.add('filled');
+                    if (solution[r][c] === 1) btn.classList.add('filled');
                     else btn.classList.add('correct-preview');
-                } else if (userGrid[r][c]) {
+                } else if (userGrid[r][c] === 1) {
                     btn.classList.add('filled');
                 }
 
@@ -455,16 +575,25 @@
 
     function updateProgress() {
         const solution = LEVELS[currentLevel].grid;
-        let ok = 0;
-        let total = 0;
-        for (let r = 0; r < solution.length; r++) {
-            for (let c = 0; c < solution[0].length; c++) {
-                total++;
-                if (userGrid[r][c] === solution[r][c]) ok++;
+        const rows = solution.length;
+        const cols = solution[0].length;
+
+        let totalBlue = 0;
+        let correctBlue = 0;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (solution[r][c] === 1) {
+                    totalBlue++;
+                    if (userGrid[r][c] === 1) {
+                        correctBlue++;
+                    }
+                }
             }
         }
-        const percent = Math.round((ok / total) * 100);
-        document.getElementById('progressBadge').textContent = `Zhoda: ${percent} %`;
+
+        const percent = totalBlue === 0 ? 0 : Math.round((correctBlue / totalBlue) * 100);
+        document.getElementById('progressBadge').textContent = `Hotovo: ${percent} %`;
     }
 
     function setMessage(text, cls) {
@@ -481,13 +610,20 @@
 
     function checkGrid() {
         const solution = LEVELS[currentLevel].grid;
+        const rows = solution.length;
+        const cols = solution[0].length;
         let allCorrect = true;
-        for (let r = 0; r < solution.length; r++) {
-            for (let c = 0; c < solution.length; c++) {
-                if (userGrid[r][c] !== solution[r][c]) allCorrect = false;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (userGrid[r][c] !== solution[r][c]) {
+                    allCorrect = false;
+                }
             }
         }
+
         updateProgress();
+
         if (allCorrect) {
             setMessage('Výborne! Obrázok si rozkódoval(a) správne.', 'ok');
         } else {
@@ -496,7 +632,8 @@
     }
 
     function resetGrid() {
-        userGrid = emptyGrid(LEVELS[currentLevel].grid.length);
+        const solution = LEVELS[currentLevel].grid;
+        userGrid = emptyGrid(solution.length, solution[0].length);
         showingSolution = false;
         renderGrid();
         updateProgress();
@@ -506,6 +643,7 @@
     function toggleSolution() {
         showingSolution = !showingSolution;
         renderGrid();
+
         if (showingSolution) {
             setMessage('Toto je správne riešenie. Číslo pred dvojbodkou určuje počiatočnú farbu a ďalšie číslice udávajú dĺžky po sebe idúcich úsekov.', 'hint');
         } else {
@@ -515,15 +653,18 @@
 
     function setLevel(level) {
         currentLevel = level;
-        userGrid = emptyGrid(LEVELS[currentLevel].grid.length);
+        const solution = LEVELS[currentLevel].grid;
+        userGrid = emptyGrid(solution.length, solution[0].length);
         showingSolution = false;
+        renderLevelButtons();
         renderCode();
         renderGrid();
         updateProgress();
         clearMessage();
     }
 
-    setLevel('easy');
+    renderLevelButtons();
+    setLevel('level1');
 </script>
 </body>
 </html>
