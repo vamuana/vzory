@@ -39,6 +39,7 @@
 
     <div class="toolbar">
         <input id="fileLoad" class="sr-only" type="file" accept="application/json" />
+        <button id="btnGuide" class="btn btn--ghost" type="button">Návod</button>
         <button id="btnLoad" class="btn btn--ghost" type="button">Načítaj</button>
         <button id="btnSave" class="btn btn--ghost" type="button">Ulož</button>
         <button id="btnExport" class="btn btn--primary" type="button">Export</button>
@@ -233,6 +234,195 @@
 
         <div class="editor__body">
             <div id="libraryGrid" class="libraryGrid"></div>
+        </div>
+    </div>
+</section>
+<!-- ===================== -->
+<!-- Návod overlay -->
+<!-- ===================== -->
+<section id="guideOverlay" class="overlay overlay--guide" hidden>
+    <div class="overlay__backdrop"></div>
+
+    <div class="overlay__panel overlay__panel--guide" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <header class="editor__top guide__top">
+            <div class="editor__titles">
+                <div id="guideTitle" class="editor__title">Ako používať učiteľské prostredie</div>
+                <div class="editor__subtitle">
+                    Krátky návod na vytvorenie úloh, export a použitie v žiackom prostredí.
+                </div>
+            </div>
+
+            <button id="btnGuideClose" class="iconbtn" type="button" aria-label="Zavrieť">✕</button>
+        </header>
+
+        <div class="editor__body guide__body">
+
+            <section class="guideHero">
+                <div>
+                    <div class="guideHero__badge">Programovanie vzorov</div>
+                    <h2>Čo táto stránka umožňuje?</h2>
+                    <p>
+                        V tomto prostredí učiteľ vytvára úlohy zamerané na programovanie obrázkových vzorov.
+                        Každé zadanie obsahuje názov, typ vzoru, obrázky A/B/C, počet opakovaní a ukážku výsledku.
+                        Po dokončení môže učiteľ všetky úlohy exportovať do ZIP súboru pre žiakov.
+                    </p>
+                </div>
+
+                <div class="guideHero__card">
+                    <strong>Výsledok pre žiaka:</strong>
+                    <span>
+                        Žiak dostane jednoduchú stránku so zadaniami, ukážkami vzorov a pripraveným Python kódom,
+                        ktorý si môže stiahnuť, zobraziť alebo upraviť.
+                    </span>
+                </div>
+            </section>
+
+            <div class="guideSteps">
+
+                <article class="guideStep">
+                    <div class="guideStep__num">1</div>
+                    <div class="guideStep__content">
+                        <h3>Vytvorenie nového zadania</h3>
+                        <p>
+                            Nové zadanie vytvoríš kliknutím na oranžové tlačidlo <strong>+</strong> v pravom dolnom rohu.
+                            Po kliknutí sa otvorí editor, v ktorom nastavíš všetky údaje zadania.
+                        </p>
+
+                        <figure class="guideShot">
+                            <img src="images/navod-uvod.png" alt="Hlavná stránka učiteľského prostredia">
+                            <figcaption>Screenshot: hlavná stránka so zoznamom zadaní a tlačidlom +.</figcaption>
+                        </figure>
+                    </div>
+                </article>
+
+                <article class="guideStep">
+                    <div class="guideStep__num">2</div>
+                    <div class="guideStep__content">
+                        <h3>Nastavenie názvu a typu vzoru</h3>
+                        <p>
+                            V editore najskôr zadáš <strong>meno zadania</strong>, napríklad „Kruhy“ alebo „Ovocie“.
+                            Potom si vyberieš typ vzoru. Môže ísť o konštantný vzor, rastúci vzor alebo vlastný vzor
+                            zložený z písmen A, B a C.
+                        </p>
+
+                        <ul class="guideList">
+                            <li><strong>Konštantný vzor</strong> sa opakuje stále rovnako, napríklad AB AB AB.</li>
+                            <li><strong>Rastúci vzor</strong> sa postupne rozširuje.</li>
+                            <li><strong>Vlastný vzor</strong> umožní učiteľovi zapísať vlastnú postupnosť, napríklad ABCAB.</li>
+                        </ul>
+
+                        <figure class="guideShot">
+                            <img src="images/navod-editor.png" alt="Editor zadania">
+                            <figcaption>Screenshot: editor so základnými nastaveniami zadania.</figcaption>
+                        </figure>
+                    </div>
+                </article>
+
+                <article class="guideStep">
+                    <div class="guideStep__num">3</div>
+                    <div class="guideStep__content">
+                        <h3>Výber obrázkov A, B a C</h3>
+                        <p>
+                            Každé písmeno vo vzore predstavuje jeden obrázok. Obrázky môžeš vybrať z pripraveného
+                            priečinka alebo nahrať vlastné PNG obrázky. Ak vzor používa iba A a B, obrázok C sa nemusí
+                            zadávať.
+                        </p>
+
+                        <p>
+                            Systém zároveň kontroluje, aby obrázok A a B neboli rovnaké. Pomáha to tomu, aby bol vzor
+                            pre žiaka jasne rozlíšiteľný.
+                        </p>
+
+                        <figure class="guideShot">
+                            <img src="images/navod-obrazky.png" alt="Výber obrázkov A B C">
+                            <figcaption>Screenshot: výber obrázkov pre symboly A, B a C.</figcaption>
+                        </figure>
+                    </div>
+                </article>
+
+                <article class="guideStep">
+                    <div class="guideStep__num">4</div>
+                    <div class="guideStep__content">
+                        <h3>Počet opakovaní, vynechané miesta a ukážka</h3>
+                        <p>
+                            V pravej časti editora nastavíš, koľkokrát sa má vzor zopakovať, koľko prvkov má byť
+                            vynechaných a aká má byť vzdialenosť medzi obrázkami. V spodnej časti sa hneď zobrazuje
+                            ukážka výsledného vzoru.
+                        </p>
+
+                        <ul class="guideList">
+                            <li><strong>Počet opakovaní</strong> určuje dĺžku výsledného vzoru.</li>
+                            <li><strong>Počet vynechaných</strong> vytvorí prázdne miesta, ktoré má žiak doplniť alebo vyriešiť.</li>
+                            <li><strong>X vzdialenosť</strong> mení rozostup medzi obrázkami.</li>
+                        </ul>
+
+                        <figure class="guideShot">
+                            <img src="images/navod-ukazka.png" alt="Ukážka vzoru">
+                            <figcaption>Screenshot: živá ukážka vzoru v spodnej časti editora.</figcaption>
+                        </figure>
+                    </div>
+                </article>
+
+                <article class="guideStep">
+                    <div class="guideStep__num">5</div>
+                    <div class="guideStep__content">
+                        <h3>Uloženie zadania</h3>
+                        <p>
+                            Po nastavení zadania klikni na tlačidlo <strong>Hotovo</strong>. Zadanie sa uloží do zoznamu.
+                            V zozname ho môžeš ďalej upraviť, zrušiť alebo presunúť na inú pozíciu pomocou úchytu.
+                        </p>
+
+                        <p>
+                            Tlačidlo <strong>Ulož</strong> v hornej lište uloží celý projekt ako JSON súbor.
+                            Tento súbor môžeš neskôr znova načítať cez tlačidlo <strong>Načítaj</strong>.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="guideStep">
+                    <div class="guideStep__num">6</div>
+                    <div class="guideStep__content">
+                        <h3>Export pre žiaka</h3>
+                        <p>
+                            Keď sú zadania pripravené, klikni na tlačidlo <strong>Export</strong>. Aplikácia vytvorí ZIP súbor,
+                            ktorý obsahuje žiacku HTML stránku, štýly, skripty, obrázky a pripravené Python súbory.
+                        </p>
+
+                        <figure class="guideShot">
+                            <img src="images/navod-export.png" alt="Export zadania">
+                            <figcaption>Screenshot: export zadania do ZIP súboru.</figcaption>
+                        </figure>
+                    </div>
+                </article>
+
+                <article class="guideStep">
+                    <div class="guideStep__num">7</div>
+                    <div class="guideStep__content">
+                        <h3>Ako to potom vidí žiak?</h3>
+                        <p>
+                            Žiak otvorí súbor <strong>student.html</strong>. Na stránke vidí jednotlivé zadania,
+                            obrázkovú ukážku vzoru a tlačidlá na zobrazenie alebo stiahnutie pripraveného Python kódu.
+                        </p>
+
+                        <p>
+                            Žiacke prostredie je jednoduchšie ako učiteľské. Žiak už nevytvára nové zadania, iba pracuje
+                            s tým, čo mu učiteľ pripravil. Môže si pozrieť vzor, stiahnuť kód a doplniť riešenie v Pythone.
+                        </p>
+
+                        <figure class="guideShot">
+                            <img src="images/navod-ziak.png" alt="Žiacke prostredie">
+                            <figcaption>Screenshot: výsledná stránka, ktorú dostane žiak po exporte.</figcaption>
+                        </figure>
+                    </div>
+                </article>
+
+            </div>
+
+            <div class="guideNote">
+                <strong>Tip:</strong>
+                Pred exportom je dobré skontrolovať každé zadanie cez tlačidlo <strong>Uprav</strong>,
+                aby boli vybrané správne obrázky a ukážka zodpovedala tomu, čo má žiak riešiť.
+            </div>
         </div>
     </div>
 </section>

@@ -1125,7 +1125,197 @@ body::after{
     object-fit: contain;
     display: block;
 }
+/* ===== Guide / Návod popup ===== */
 
+.overlay--guide {
+    z-index: 90;
+}
+
+.overlay__panel--guide {
+    width: min(1120px, calc(100% - 28px));
+    max-height: calc(100vh - 36px);
+}
+
+.guide__top {
+    background:
+            radial-gradient(260px 120px at 12% 0%, rgba(0,185,200,.16), transparent 70%),
+            radial-gradient(260px 120px at 90% 0%, rgba(246,168,0,.16), transparent 70%),
+            rgba(255,255,255,.82);
+}
+
+.guide__body {
+    padding: 18px;
+}
+
+.guideHero {
+    display: grid;
+    grid-template-columns: 1.4fr .8fr;
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 18px;
+}
+
+.guideHero h2 {
+    margin: 8px 0 8px;
+    font-size: 28px;
+    letter-spacing: -.03em;
+}
+
+.guideHero p {
+    margin: 0;
+    color: rgba(19,32,51,.72);
+    line-height: 1.6;
+    font-weight: 600;
+}
+
+.guideHero__badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(0,185,200,.12);
+    border: 1px solid rgba(0,185,200,.26);
+    color: rgba(19,32,51,.82);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.guideHero__card {
+    border-radius: 20px;
+    padding: 16px;
+    background:
+            linear-gradient(135deg, rgba(0,185,200,.13), rgba(246,168,0,.12)),
+            rgba(255,255,255,.88);
+    border: 1px solid rgba(19,32,51,.10);
+    box-shadow: 0 14px 32px rgba(19,32,51,.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+}
+
+.guideHero__card strong {
+    font-size: 16px;
+}
+
+.guideHero__card span {
+    color: rgba(19,32,51,.72);
+    line-height: 1.5;
+    font-weight: 650;
+}
+
+.guideSteps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.guideStep {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid rgba(19,32,51,.10);
+    box-shadow: 0 12px 28px rgba(19,32,51,.055);
+}
+
+.guideStep__num {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(246,168,0,.95), rgba(196,90,10,.90));
+    color: #fff;
+    font-weight: 950;
+    box-shadow: 0 12px 24px rgba(196,90,10,.18);
+}
+
+.guideStep__content h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.guideStep__content p {
+    margin: 0 0 10px;
+    color: rgba(19,32,51,.72);
+    line-height: 1.6;
+    font-weight: 600;
+}
+
+.guideList {
+    margin: 8px 0 12px;
+    padding-left: 20px;
+    color: rgba(19,32,51,.74);
+    line-height: 1.55;
+    font-weight: 600;
+}
+
+.guideList li + li {
+    margin-top: 5px;
+}
+
+.guideShot {
+    margin: 12px 0 0;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(19,32,51,.10);
+    background:
+            linear-gradient(45deg, rgba(255,255,255,.96) 25%, rgba(245,248,252,.96) 25%, rgba(245,248,252,.96) 50%, rgba(255,255,255,.96) 50%, rgba(255,255,255,.96) 75%, rgba(245,248,252,.96) 75%);
+    background-size: 22px 22px;
+}
+
+.guideShot img {
+    width: 100%;
+    max-height: 360px;
+    object-fit: contain;
+    display: block;
+}
+
+.guideShot figcaption {
+    padding: 9px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(19,32,51,.58);
+    background: rgba(255,255,255,.86);
+    border-top: 1px solid rgba(19,32,51,.08);
+}
+
+.guideNote {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(0,185,200,.10);
+    border: 1px solid rgba(0,185,200,.22);
+    color: rgba(19,32,51,.76);
+    line-height: 1.55;
+    font-weight: 650;
+}
+
+@media (max-width: 860px) {
+    .guideHero {
+        grid-template-columns: 1fr;
+    }
+
+    .guideHero h2 {
+        font-size: 23px;
+    }
+
+    .guideStep {
+        grid-template-columns: 1fr;
+    }
+
+    .guideStep__num {
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+    }
+}
 .libraryCard__name {
     margin-top: 10px;
     min-height: 34px;

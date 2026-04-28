@@ -59,6 +59,9 @@
     };
     const els = {
         // Index
+        btnGuide: document.getElementById("btnGuide"),
+        guideOverlay: document.getElementById("guideOverlay"),
+        btnGuideClose: document.getElementById("btnGuideClose"),
         tasksRoot: document.getElementById("tasksRoot"),
         emptyState: document.getElementById("emptyState"),
         tpl: document.getElementById("taskRowTpl"),
@@ -71,6 +74,7 @@
         btnLibraryClose: document.getElementById("btnLibraryClose"),
         libraryGrid: document.getElementById("libraryGrid"),
         // Editor overlay
+
         editorOverlay: document.getElementById("editorOverlay"),
         btnEditorClose: document.getElementById("btnEditorClose"),
         inpTaskName: document.getElementById("inpTaskName"),
@@ -128,7 +132,15 @@
         editingId: null,
         data: null,
     };
+    function showGuideOverlay(on) {
+        if (!els.guideOverlay) return;
+        els.guideOverlay.hidden = !on;
 
+        const editorOpen = els.editorOverlay && !els.editorOverlay.hidden;
+        const libraryOpen = els.libraryOverlay && !els.libraryOverlay.hidden;
+
+        document.body.style.overflow = on || editorOpen || libraryOpen ? "hidden" : "";
+    }
     function getDefaultTaskDraft() {
         return {
             id: null,
@@ -1549,7 +1561,14 @@
         els.btnLoad.addEventListener("click", onLoadProjectClick);
         els.btnExport.addEventListener("click", () => onExport().catch(console.error));
         els.btnLibraryClose?.addEventListener("click", () => closeLibraryPicker(null));
+        els.btnGuide?.addEventListener("click", () => showGuideOverlay(true));
+        els.btnGuideClose?.addEventListener("click", () => showGuideOverlay(false));
 
+        els.guideOverlay?.addEventListener("click", (e) => {
+            if (e.target.classList.contains("overlay__backdrop")) {
+                showGuideOverlay(false);
+            }
+        });
         els.libraryOverlay?.addEventListener("click", (e) => {
             if (e.target.classList.contains("overlay__backdrop")) {
                 closeLibraryPicker(null);
@@ -1571,6 +1590,11 @@
         document.addEventListener("keydown", (e) => {
             if (e.key !== "Escape") return;
 
+            if (els.guideOverlay && !els.guideOverlay.hidden) {
+                showGuideOverlay(false);
+                return;
+            }
+
             if (els.libraryOverlay && !els.libraryOverlay.hidden) {
                 closeLibraryPicker(null);
                 return;
@@ -1589,6 +1613,7 @@
 
     function assertElements() {
         const required = [
+            "btnGuide", "guideOverlay", "btnGuideClose",
             "tasksRoot","emptyState","tpl","btnAdd","btnLoad","btnSave","btnExport","fileLoad",
             "editorOverlay","btnEditorClose","inpTaskName","patternRadioRoot","inpCustomPattern","customPatternField",
             "chkBeforeAfter","segBeforeAfterSymbol","inpRepeat","inpMissing","inpXdist","btnRandom","btnDone","libraryOverlay","btnLibraryClose","libraryGrid",
