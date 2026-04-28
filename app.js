@@ -1468,17 +1468,20 @@
         const fnB = draft.images?.B?.fileName || `${base}1.png`;
         const fnC = draft.images?.C?.fileName || `${base}2.png`;
 
-        const loadLines = ["obrazky_import = []"];
+        const imageFiles = [];
 
-        if (used.A) {
-            loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnA}'))`);
-        }
-        if (used.B) {
-            loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnB}'))`);
-        }
-        if (used.C) {
-            loadLines.push(`obrazky_import.append(tk.PhotoImage(file='${fnC}'))`);
-        }
+        if (used.A) imageFiles.push(fnA);
+        if (used.B) imageFiles.push(fnB);
+        if (used.C) imageFiles.push(fnC);
+
+        const loadLines = [
+            `nazvy_obrazkov = [${imageFiles.map((name) => `'${name}'`).join(", ")}]`,
+            "obrazky_import = []",
+            "",
+            "for nazov in nazvy_obrazkov:",
+            "    obrazok = tk.PhotoImage(file=nazov)",
+            "    obrazky_import.append(obrazok)",
+        ];
 
         return [
             "import tkinter as tk",
